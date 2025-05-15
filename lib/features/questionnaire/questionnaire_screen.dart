@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/models.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 
+// Экран заполнения анкеты
 class QuestionnaireScreen extends StatefulWidget {
   final RecoveryData? initialData;
 
@@ -57,8 +58,8 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
         gender: _gender,
         weight: _weight,
         height: _height,
-        mainInjuryType: _mainInjuryType!,
-        specificInjury: _specificInjury!,
+        mainInjuryType: _mainInjuryType,
+        specificInjury: _specificInjury,
         painLevel: _painLevel,
         trainingTime: _trainingTime,
       );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// Экран выбора времени для таймера упражнения
 class TimerPickerScreen extends StatefulWidget {
   @override
   _TimerPickerScreenState createState() => _TimerPickerScreenState();
@@ -49,7 +50,9 @@ class _TimerPickerScreenState extends State<TimerPickerScreen> {
               ),
               child: const Text('Установить время'),
               onPressed: () {
-                final totalSeconds = _minutes * 60 + _seconds;
+                final totalSeconds =
+                    _minutes * 60 +
+                    _seconds; // Возврат общего времени в секундах
                 Navigator.pop(context, totalSeconds);
               },
             ),
@@ -59,6 +62,7 @@ class _TimerPickerScreenState extends State<TimerPickerScreen> {
     );
   }
 
+  // Виджет выбора числа с анимацией
   Widget _buildNumberPicker({
     required int value,
     required int max,

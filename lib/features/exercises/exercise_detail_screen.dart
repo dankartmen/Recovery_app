@@ -10,6 +10,7 @@ import '../../data/models/exercise_history.dart';
 import '../../data/repositories/history_repository.dart';
 import '../../data/models/sound.dart';
 
+// Экран с конкретным упражнением
 class ExerciseDetailScreen extends StatefulWidget {
   final Exercise exercise;
 
@@ -54,6 +55,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     final prefs = await SharedPreferences.getInstance();
     final soundPath = prefs.getString('selectedSound');
 
+    // Поиск звука в списке доступных
     if (soundPath != null) {
       final allSounds = await SoundService.getAllSounds();
       setState(() {
@@ -65,6 +67,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
+  // Управление таймером
   void _toggleTimer() {
     if (_isRunning) {
       _timer?.cancel();
@@ -82,6 +85,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     });
   }
 
+  // Запуск таймера с обновлением прогресса
   void _startTimer(int duration) {
     _timer?.cancel();
 
@@ -313,7 +317,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               ),
             ),
 
-            // Таймер внизу SingleChildScrollView
+            // Таймер
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(

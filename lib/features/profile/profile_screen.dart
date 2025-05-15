@@ -3,6 +3,7 @@ import 'package:recovery_app/data/repositories/questionnaire_repository.dart';
 import '../../data/models/models.dart';
 import '../questionnaire/questionnaire_screen.dart';
 
+// Экран профиля пользователя с отображением анкетных данных
 class ProfileScreen extends StatelessWidget {
   final RecoveryData recoveryData;
   final Function(RecoveryData)? onProfileUpdated;

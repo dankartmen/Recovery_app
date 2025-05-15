@@ -6,6 +6,7 @@ import '../profile/profile_screen.dart';
 import '../questionnaire/questionnaire_screen.dart';
 import 'exercises_screen.dart';
 
+// Главный экран с навигацией между разделами
 class HomeScreen extends StatefulWidget {
   final RecoveryData recoveryData;
 
@@ -96,6 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
+        // Переключение между экранами
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,

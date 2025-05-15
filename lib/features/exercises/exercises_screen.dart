@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../data/models/models.dart'; // Добавить импорт
+import '../../data/models/models.dart';
 import 'exercise_detail_screen.dart';
 import 'exercise_tile.dart';
+
+// Экран отображения списка упражнений с фильтрацией по данным восстановления
 
 class ExercisesScreen extends StatefulWidget {
   final RecoveryData recoveryData;
@@ -13,8 +15,9 @@ class ExercisesScreen extends StatefulWidget {
   _ExercisesScreenState createState() => _ExercisesScreenState();
 }
 
+// Состояние для ExercisesScreen
 class _ExercisesScreenState extends State<ExercisesScreen> {
-  late List<Exercise> _exercises; // Измените `final` на `late List`
+  late List<Exercise> _exercises; // Отложенная инициализация списка упражнений
 
   @override
   void initState() {
@@ -22,6 +25,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     _exercises = _getFilteredExercises(); // Инициализируем список
   }
 
+  // Обновление виджета при изменении recoveryData
   @override
   void didUpdateWidget(ExercisesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -33,6 +37,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     }
   }
 
+  // Навигация к детальному экрану упражнения
   void _navigateToDetail(BuildContext context, Exercise exercise) {
     Navigator.push(
       context,
@@ -42,6 +47,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     );
   }
 
+  // Построение интерфейса списка упражнений
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -61,6 +67,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     );
   }
 
+  // Фильтрация упражнений по параметрам восстановления
   List<Exercise> _getFilteredExercises() {
     return exampleExercises.where((exercise) {
       return exercise.suitableFor.contains(

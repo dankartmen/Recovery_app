@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/utils/audio_player_utils.dart';
 import '../../data/models/sound.dart';
 
+// Сервис для работы со звуками: воспроизведение, хранение, управление громкостью
 class SoundService {
   static final AudioPlayer previewPlayer =
       AudioPlayer()..setReleaseMode(ReleaseMode.stop);
@@ -23,6 +24,7 @@ class SoundService {
   ];
   static List<Sound> customSounds = [];
 
+  // Инициализация пользовательских звуков
   static Future<void> init() async {
     await _loadCustomSounds();
   }
@@ -44,11 +46,11 @@ class SoundService {
           if (await file.exists()) {
             await previewPlayer.play(DeviceFileSource(sound.path));
           } else {
-            debugPrint("File not found: ${sound.path}");
+            debugPrint("Фаил не найден: ${sound.path}");
           }
         }
       } catch (e) {
-        debugPrint("Error playing sound: $e");
+        debugPrint("Ошибка проигрывания мелодии: $e");
         rethrow;
       }
     }
@@ -81,6 +83,7 @@ class SoundService {
     }
   }
 
+  // Добавление пользовательского звука
   static Future<bool> addCustomSound(String filePath) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -93,7 +96,6 @@ class SoundService {
       final fileName = path.basename(filePath);
       final newPath = path.join(soundDir.path, fileName);
 
-      // Если файл уже существует, добавляем timestamp
       String uniqueName = fileName; // По умолчанию - оригинальное имя
       String actualPath = newPath;
 
@@ -140,7 +142,7 @@ class SoundService {
       }
       return false;
     } catch (e) {
-      debugPrint("Error adding sound: $e");
+      debugPrint("Ошибка добавления звука: $e");
       return false;
     }
   }
@@ -165,11 +167,11 @@ class SoundService {
             volume: sound.volume,
           );
         } else {
-          debugPrint("File not found: ${sound.path}");
+          debugPrint("Фаил не найден: ${sound.path}");
         }
       }
     } catch (e) {
-      debugPrint("Error previewing sound: $e");
+      debugPrint("Ошибка при предварительном прослушивании звука: $e");
       rethrow;
     }
   }

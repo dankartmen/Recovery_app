@@ -17,11 +17,12 @@ void main() async {
   final questionnaireRepo = QuestionnaireRepository();
   final recoveryData = await questionnaireRepo.getLatestQuestionnaire();
 
-  await SoundService.init();
+  await SoundService.init(); // Инициализация звукового сервиса
 
   runApp(MyApp(recoveryData: recoveryData));
 }
 
+// Корневой виджет приложения
 class MyApp extends StatelessWidget {
   final RecoveryData? recoveryData;
 
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: recoveryData == null ? '/questionnaire' : '/home',
       routes: {
+        // Конфигурация маршрутов приложения
         '/home':
             (context) => HomeScreen(
               recoveryData:

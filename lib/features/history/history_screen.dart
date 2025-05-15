@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/exercise_history.dart';
 import '../../data/repositories/history_repository.dart';
 
+// Экран истории выполненных упражнений
 class HistoryScreen extends StatefulWidget {
   @override
   _HistoryScreenState createState() => _HistoryScreenState();
@@ -14,9 +15,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _historyFuture = _repository.getAllHistory();
+    _historyFuture =
+        _repository.getAllHistory(); // Загрузка истории при инициализации
   }
 
+  // Обновление списка истории
   void _refreshHistory() {
     setState(() {
       _historyFuture = _repository.getAllHistory();
@@ -29,13 +32,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
       appBar: AppBar(
         title: Text('История упражнений'),
         actions: [
-          IconButton(icon: Icon(Icons.refresh), onPressed: _refreshHistory),
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _refreshHistory,
+          ), // Кнопка обновления
         ],
       ),
       body: FutureBuilder<List<ExerciseHistory>>(
         future: _historyFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
+            // Обработка различных состояний загрузки
             return Center(child: CircularProgressIndicator());
           }
 
@@ -43,8 +50,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
             return Center(child: Text('Ошибка загрузки истории'));
           }
 
+          // Отображение списка или сообщения об отсутствии данных
           final historyList = snapshot.data!;
-
           if (historyList.isEmpty) {
             return Center(child: Text('Нет выполненных упражнений'));
           }

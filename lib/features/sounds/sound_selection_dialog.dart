@@ -113,40 +113,6 @@ class _SoundSelectionDialogState extends State<SoundSelectionDialog> {
     }
   }
 
-  Future<void> _addCustomSound() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.audio);
-
-      if (result != null && result.files.isNotEmpty) {
-        final file = result.files.first;
-        if (file.path != null) {
-          final success = await SoundService.addCustomSound(file.path!);
-          if (success) {
-            setState(() {});
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text("Звук успешно добавлен")));
-          }
-        }
-      }
-    } catch (e) {
-      showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              title: Text("Ошибка"),
-              content: Text("Не удалось добавить файл: ${e.toString()}"),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text("OK"),
-                ),
-              ],
-            ),
-      );
-    }
-  }
-
   Future<void> _addCustomSoundinAndriod() async {
     try {
       final result = await FilePicker.platform.pickFiles(type: FileType.audio);
