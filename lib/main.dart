@@ -5,7 +5,7 @@ import 'data/repositories/questionnaire_repository.dart';
 import 'features/history/history_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/questionnaire/questionnaire_screen.dart';
-import 'features/exercises/home_screen.dart';
+import 'features/home/home_screen.dart';
 import 'features/exercises/exercise_detail_screen.dart';
 import 'data/models/models.dart';
 import 'features/sounds/sound_selection_dialog.dart';

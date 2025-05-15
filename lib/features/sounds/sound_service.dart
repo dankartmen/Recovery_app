@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/utils/audio_player_utils.dart';
+import 'audio_player_utils.dart';
 import '../../data/models/sound.dart';
 
 // Сервис для работы со звуками: воспроизведение, хранение, управление громкостью

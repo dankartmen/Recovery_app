@@ -21,7 +21,6 @@ class RecoveryData {
     required this.trainingTime,
   });
 
-  // Добавлены параметры в функцию toMap()
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -29,9 +28,8 @@ class RecoveryData {
       'gender': gender,
       'weight': weight,
       'height': height,
-      'mainInjuryType':
-          mainInjuryType, // Исправлено: injuryType -> mainInjuryType
-      'specificInjury': specificInjury, // Добавлено
+      'mainInjuryType': mainInjuryType,
+      'specificInjury': specificInjury,
       'painLevel': painLevel,
       'trainingTime': trainingTime,
     };
@@ -50,7 +48,6 @@ class RecoveryData {
     );
   }
 
-  // Добавлены параметры в функцию fromMap()
   factory RecoveryData.fromMap(Map<String, dynamic> map) {
     return RecoveryData(
       id: map['id'],
@@ -58,9 +55,8 @@ class RecoveryData {
       gender: map['gender'],
       weight: map['weight'],
       height: map['height'],
-      mainInjuryType:
-          map['mainInjuryType'], // Исправлено: injuryType -> mainInjuryType
-      specificInjury: map['specificInjury'], // Добавлено
+      mainInjuryType: map['mainInjuryType'],
+      specificInjury: map['specificInjury'],
       painLevel: map['painLevel'],
       trainingTime: map['trainingTime'],
     );
@@ -334,7 +330,7 @@ final exampleExercises = [
   ),
 ];
 
-// Добавим детализированные категории травм
+// категории травм
 final injuryCategories = {
   'Ортопедические': [
     'Перелом конечностей',

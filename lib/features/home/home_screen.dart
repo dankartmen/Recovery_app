@@ -4,7 +4,7 @@ import '../../data/repositories/questionnaire_repository.dart';
 import '../history/history_screen.dart';
 import '../profile/profile_screen.dart';
 import '../questionnaire/questionnaire_screen.dart';
-import 'exercises_screen.dart';
+import '../exercises/exercises_screen.dart';
 
 // Главный экран с навигацией между разделами
 class HomeScreen extends StatefulWidget {
