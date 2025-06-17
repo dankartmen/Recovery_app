@@ -92,9 +92,11 @@ class TrainingCalendarModel extends ChangeNotifier {
       );
 
       await scheduleBox.put('schedule', newSchedule);
+
       notifyListeners();
     } catch (e) {
       debugPrint('Ошибка генерации расписания: $e');
+      rethrow;
     }
   }
 

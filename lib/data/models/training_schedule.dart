@@ -11,4 +11,7 @@ class TrainingSchedule {
   final String injuryType;
 
   TrainingSchedule({required this.trainings, required this.injuryType});
+  static TrainingSchedule empty() {
+    return TrainingSchedule(trainings: {}, injuryType: '');
+  }
 }

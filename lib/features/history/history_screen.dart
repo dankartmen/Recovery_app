@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import '../../data/models/exercise_history.dart';
 import '../../data/models/history_model.dart';
+import '../../data/models/home_screen_model.dart';
 import '../../data/models/models.dart';
 import '../../data/models/training.dart';
 import '../../data/models/training_schedule.dart';
@@ -103,7 +104,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (_historyList.isEmpty) {
       return _buildDayContainer(dayIndex, Colors.grey);
     }
-    final now = DateTime.now().add(Duration(days: 1));
+    final now = DateTime.now();
     _historyList.sort((a, b) => a.dateTime.compareTo(b.dateTime));
     final firstDate = _historyList.first.dateTime;
     final currentDate = firstDate.add(Duration(days: dayIndex));
@@ -680,82 +681,83 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Consumer<HistoryModel>(
       builder: (context, historyModel, child) {
+        // Если история загружается
         if (historyModel.isLoading) {
           return Center(child: CircularProgressIndicator());
         }
 
-        if (historyModel.history.isEmpty) {
-          return Center(child: Text("Нет данных для отображения"));
-        }
-
-        _historyList = historyModel.history;
-
+        // Если расписание еще не загружено
         if (widget.schedule.trainings.isEmpty) {
-          return Scaffold(
-            appBar: AppBar(title: Text('История упражнений')),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 20),
-                  Text('Загрузка расписания...'),
-                ],
-              ),
-            ),
+          return Consumer<HomeScreenModel>(
+            builder: (context, homeModel, child) {
+              // Если расписание в HomeScreenModel тоже пустое
+              if (homeModel.schedule.trainings.isEmpty) {
+                return Scaffold(
+                  appBar: AppBar(title: Text('История упражнений')),
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              // Обновляем виджет с актуальным расписанием
+              return _buildContent(historyModel, homeModel.schedule);
+            },
           );
         }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text('История упражнений'),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.refresh),
-                onPressed: _refreshHistory,
-              ), // Кнопка обновления
-              IconButton(
-                icon: const Icon(Icons.picture_as_pdf),
-                onPressed: _openPdfPreview,
-                tooltip: 'Экспорт для врача',
-              ),
-            ],
-          ),
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Column(
-              children: [
-                // === ДОБАВЛЯЕМ ФИЛЬТРЫ ===
-                //_buildFilters(),
-                //const SizedBox(height: 10),
-
-                // Существующий график (можно упростить по вашему желанию)
-                //_buildSimpleProgressIndicator(_historyList),
-
-                // === ДОБАВЛЯЕМ ТАЙМЛАЙН ВОССТАНОВЛЕНИЯ ===
-                _buildRecoveryTimeline(),
-                const SizedBox(height: 10),
-
-                // Существующий список
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _historyList.length,
-                    itemBuilder:
-                        (context, index) =>
-                            _buildHistoryItem(_historyList[index]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        return _buildContent(historyModel, widget.schedule);
       },
+    );
+  }
+
+  Widget _buildContent(HistoryModel historyModel, TrainingSchedule schedule) {
+    _historyList = historyModel.history;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('История упражнений'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _refreshHistory,
+          ), // Кнопка обновления
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            onPressed: _openPdfPreview,
+            tooltip: 'Экспорт для врача',
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          children: [
+            // === ДОБАВЛЯЕМ ФИЛЬТРЫ ===
+            //_buildFilters(),
+            //const SizedBox(height: 10),
+
+            // Существующий график (можно упростить по вашему желанию)
+            //_buildSimpleProgressIndicator(_historyList),
+
+            // === ДОБАВЛЯЕМ ТАЙМЛАЙН ВОССТАНОВЛЕНИЯ ===
+            _buildRecoveryTimeline(),
+            const SizedBox(height: 10),
+
+            // Существующий список
+            Expanded(
+              child: ListView.builder(
+                itemCount: _historyList.length,
+                itemBuilder:
+                    (context, index) => _buildHistoryItem(_historyList[index]),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

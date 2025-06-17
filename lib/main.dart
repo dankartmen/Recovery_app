@@ -28,8 +28,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SoundService.init(); // Инициализация звукового сервиса
-
   runApp(
     FutureBuilder(
       future: _initializeApp(),
@@ -95,7 +93,7 @@ Future<void> _initializeApp() async {
   final historyRepo = HistoryRepository(authService);
   final history = await historyRepo.getAllHistory();
 
-  // Можно сохранить в глобальном состоянии, если нужно
+  await SoundService.init(); // Инициализация звукового сервиса
 }
 
 // Корневой виджет приложения
