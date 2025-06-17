@@ -206,9 +206,10 @@ class _SoundSelectionDialogState extends State<SoundSelectionDialog> {
         _isPlaying && _currentlyPlayingSound?.path == sound.path;
 
     return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Container(
-          margin: EdgeInsets.only(left: -16),
+          padding: EdgeInsets.only(left: 0),
           child: Row(
             children: [
               // Radio button - левый край

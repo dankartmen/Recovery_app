@@ -1,77 +1,106 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
+import 'package:table_calendar/table_calendar.dart';
+import '../../services/auth_service.dart';
 import '../models/exercise_history.dart';
 import 'dart:io';
 
 class HistoryRepository {
-  static const _databaseName = "ExerciseHistory.db";
-  static const _databaseVersion = 1;
-  static const tableName = 'history';
+  static const String _baseUrl = 'http://178.130.49.215:8000';
+  final AuthService authService;
+  HistoryRepository(this.authService);
 
-  HistoryRepository._privateConstructor();
-  static final HistoryRepository instance =
-      HistoryRepository._privateConstructor();
+  Future<String?> _getAuthHeader() async {
+    try {
+      // Проверяем, инициализирован ли currentUser
+      if (authService.currentUser == null) {
+        await authService.initialize();
+        debugPrint('Пользователь не аутентифицирован после инициализации');
+        return null;
+      }
 
-  static Database? _database;
-
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
-  }
-
-  static Future<Database> _initDatabase() async {
-    // Инициализация FFI только для десктопных платформ
-    if (!kIsWeb &&
-        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
+      return authService.getBasicAuthHeader();
+    } catch (e) {
+      debugPrint('Ошибка получения заголовка авторизации: $e');
+      return null;
     }
-
-    final path = await getDatabasesPath();
-    final dbPath = join(path, _databaseName);
-    return await openDatabase(
-      dbPath,
-      onCreate: _onCreate,
-      version: _databaseVersion,
-    );
-  }
-
-  static Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE $tableName (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        exerciseName TEXT NOT NULL,
-        dateTime TEXT NOT NULL,
-        duration INTEGER NOT NULL,
-        notes TEXT
-      )
-    ''');
   }
 
   Future<int> addHistory(ExerciseHistory history) async {
-    try {
-      final db = await instance.database;
-      return await db.insert(tableName, history.toMap());
-    } catch (e) {
-      print("Ошибка сохранения истории: $e");
-      return -1;
-    }
+    final authHeader = await _getAuthHeader();
+    if (authHeader == null) return -1;
+
+    final userId = authService.currentUser?.id;
+    if (userId == null) return -1;
+
+    final response = await http.post(
+      Uri.parse('$_baseUrl/history'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: jsonEncode({...history.toJson(), 'user_id': userId}),
+    );
+
+    return response.statusCode == 200 ? 1 : -1;
   }
 
   Future<List<ExerciseHistory>> getAllHistory() async {
-    final db = await instance.database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      tableName,
-      orderBy: 'dateTime DESC',
-    );
-    return List.generate(maps.length, (i) => ExerciseHistory.fromMap(maps[i]));
+    await Future.delayed(Duration(seconds: 1));
+    debugPrint("Запрос истории упражнений...");
+    try {
+      final authHeader = await _getAuthHeader();
+      if (authHeader == null) {
+        debugPrint("Ошибка: заголовок авторизации не получен");
+        return [];
+      }
+
+      final userId = authService.currentUser?.id;
+      if (userId == null) {
+        debugPrint("Ошибка: ID пользователя не определен");
+        return [];
+      }
+
+      debugPrint("Отправка запроса для пользователя ID: $userId");
+      final response = await http.get(
+        Uri.parse('$_baseUrl/users/$userId/history'),
+        headers: {'Authorization': authHeader},
+      );
+
+      debugPrint("Статус ответа: ${response.statusCode}");
+      debugPrint("Тело ответа: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        debugPrint("Получено записей: ${data.length}");
+        return data.map((json) => ExerciseHistory.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Критическая ошибка в getAllHistory: $e");
+      return [];
+    }
+  }
+
+  Future<List<ExerciseHistory>> getHistoryByDate(DateTime date) async {
+    final allHistory = await getAllHistory();
+    return allHistory.where((h) => isSameDay(h.dateTime, date)).toList();
   }
 
   Future<int> deleteHistory(int id) async {
-    final db = await instance.database;
-    return await db.delete(tableName, where: 'id = ?', whereArgs: [id]);
+    final authHeader = await _getAuthHeader();
+    if (authHeader == null) return -1;
+
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/history/$id'),
+      headers: {'Authorization': authHeader},
+    );
+
+    return response.statusCode == 200 ? 1 : -1;
   }
 }

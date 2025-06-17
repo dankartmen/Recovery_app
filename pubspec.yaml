@@ -1,4 +1,4 @@
-name: recovery_app
+name: auth_test
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -30,26 +30,35 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.4.0
+  provider: ^6.1.5
+  flutter_localizations:
+    sdk: flutter  
   audioplayers: ^6.4.0
   shared_preferences: ^2.5.3
   cached_network_image: ^3.4.1
-
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
   file_picker: ^10.1.2
   path_provider: ^2.1.5
   path: ^1.9.1
-
+  open_file: ^3.3.1
+  url_launcher: ^6.1.11
   permission_handler: ^12.0.0
   sqflite: ^2.4.2
   sqflite_common_ffi: ^2.3.5
-  intl: ^0.20.2
+  table_calendar: ^3.1.3
+  fl_chart: ^1.0.0
+  pdf: ^3.10.1
+  printing: ^5.10.0
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  
+  flutter_launcher_icons: ^0.13.1
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -57,6 +66,13 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+
+
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -76,6 +92,8 @@ flutter:
     - assets/sounds/ending-sound-effect.mp3
     - assets/sounds/klubnichki.mp3
     - assets/sounds/pobeda.mp3
+    - assets/images/logo.png
+    - assets/fonts/Roboto-Regular.ttf
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

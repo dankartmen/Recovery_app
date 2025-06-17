@@ -1,14 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:recovery_app/features/exercises/timer_picker_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/models/history_model.dart';
 import '../../data/models/models.dart';
+import '../../data/models/training_calendar_model.dart';
+import '../../services/auth_service.dart';
 import '../sounds/sound_service.dart';
 import '../sounds/sound_selection_dialog.dart';
 import '../../data/models/exercise_history.dart';
 import '../../data/repositories/history_repository.dart';
 import '../../data/models/sound.dart';
+import 'timer_picker_screen.dart';
 
 // Экран с конкретным упражнением
 class ExerciseDetailScreen extends StatefulWidget {
@@ -25,26 +29,35 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   int _totalDuration = 0;
   Timer? _timer;
   bool _isRunning = false;
+  int _completedSets = 0;
+  int _painLevel = 0;
+
+  int _totalDurationSeconds = 0;
+  bool _isExerciseCompleted = false;
   bool _isCompleted = false;
   Sound? _selectedSound;
   final AudioPlayer _timerPlayer = AudioPlayer();
-  final HistoryRepository _historyRepo = HistoryRepository.instance;
+  late HistoryRepository _historyRepo;
   final TextEditingController _notesController = TextEditingController();
-  late StreamSubscription<void> _timerPlayerCompleteSubscription;
 
   double _progress = 0.0;
 
+  int _currentSetDuration = 0; // Holds the duration of the current set
+  bool _isSetCompleted = false; // Indicates if the current set is completed
   @override
   void initState() {
     super.initState();
     _loadSoundSettings();
     _timerPlayer.setReleaseMode(ReleaseMode.stop);
+
+    // Инициализация HistoryRepository через AuthService
+    final authService = Provider.of<AuthService>(context, listen: false);
+    _historyRepo = HistoryRepository(authService);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _timerPlayerCompleteSubscription.cancel();
     _timerPlayer.dispose();
     SoundService.previewPlayer.stop();
     _notesController.dispose();
@@ -61,7 +74,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       setState(() {
         _selectedSound = allSounds.firstWhere(
           (s) => s.path == soundPath,
-          orElse: () => SoundService.sounds.first,
+          orElse: () => SoundService.defaultSounds.first,
         );
       });
     }
@@ -80,6 +93,203 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   void _resetTimer() {
     _timer?.cancel();
     setState(() {
+      _isRunning = false;
+      _remainingSeconds = 0;
+    });
+  }
+
+  void _startSet(int duration) {
+    _timer?.cancel(); // Отменяем предыдущий таймер
+
+    setState(() {
+      _currentSetDuration = duration;
+      _remainingSeconds = duration;
+      _isRunning = true;
+      _isSetCompleted = false;
+      _progress = 0.0;
+    });
+
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        if (_remainingSeconds > 0) {
+          _remainingSeconds--;
+          _progress = 1 - (_remainingSeconds / _currentSetDuration);
+        } else {
+          timer.cancel();
+          _isRunning = false;
+          _isSetCompleted = true;
+          _completedSets++;
+          //_totalDurationSeconds += _currentSetDuration;
+          _playCompletionSound();
+          _completeSet();
+
+          // Показываем уведомление о завершении подхода
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Подход $_completedSets завершен!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      });
+    });
+  }
+
+  void _completeSet() {
+    setState(() {
+      _totalDurationSeconds += _currentSetDuration;
+      _isRunning = false;
+      _remainingSeconds = 0;
+      _isCompleted = true;
+      _playCompletionSound();
+    });
+  }
+
+  // Шкала оценки боли
+  List<Widget> _buildPainScale() {
+    return [
+      const Text(
+        "Оцените болевые ощущения:",
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(
+          5,
+          (index) => IconButton(
+            icon: Icon(
+              Icons.favorite,
+              color: index < _painLevel ? Colors.red : Colors.grey,
+            ),
+            onPressed: () => setState(() => _painLevel = index + 1),
+          ),
+        ),
+      ),
+      if (_painLevel >= 4)
+        const Text(
+          "Прекратите упражнение и проконсультируйтесь с врачом!",
+          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+        ),
+    ];
+  }
+
+  void _completeExercise() async {
+    final notes = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        int localPainLevel = _painLevel;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text("Упражнение завершено!"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _notesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Добавить заметки',
+                        hintText: 'Опишите ваше состояние...',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      "Оцените болевые ощущения:",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(
+                        5,
+                        (index) => IconButton(
+                          icon: Icon(
+                            Icons.favorite,
+                            color:
+                                index < localPainLevel
+                                    ? Colors.red
+                                    : Colors.grey,
+                          ),
+                          onPressed:
+                              () => setDialogState(
+                                () => localPainLevel = index + 1,
+                              ),
+                        ),
+                      ),
+                    ),
+                    if (localPainLevel >= 4)
+                      Text(
+                        "Прекратите упражнение и проконсультируйтесь с врачом!",
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Пропустить'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() => _painLevel = localPainLevel);
+                    Navigator.pop(context, _notesController.text);
+                  },
+                  child: Text('Сохранить'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    final newHistory = ExerciseHistory(
+      exerciseName: widget.exercise.title,
+      dateTime: DateTime.now(),
+      duration: Duration(seconds: _totalDurationSeconds),
+      sets: _completedSets, // Сохраняем количество подходов
+      notes: notes,
+      painLevel: _painLevel,
+    );
+
+    final result = await _historyRepo.addHistory(newHistory);
+    if (result > 0) {
+      // Обновляем обе модели
+      Provider.of<HistoryModel>(
+        context,
+        listen: false,
+      ).addHistoryItem(newHistory);
+      Provider.of<TrainingCalendarModel>(
+        context,
+        listen: false,
+      ).refreshTrainingStatus();
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Упражнение сохранено в истории")));
+    }
+    _resetExercise();
+  }
+
+  void _resetExercise() {
+    setState(() {
+      _completedSets = 0;
+      _totalDurationSeconds = 0;
+      _isExerciseCompleted = false;
+      _isCompleted = false;
       _isRunning = false;
       _remainingSeconds = 0;
     });
@@ -108,9 +318,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         } else {
           _timer?.cancel();
           _isRunning = false;
-          _isCompleted = true;
+          var _isCompleted = true;
           _playCompletionSound();
-          _showCompletionDialog();
         }
       });
     });
@@ -126,72 +335,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         ).showSnackBar(SnackBar(content: Text("Ошибка воспроизведения звука")));
       }
     }
-  }
-
-  void _showCompletionDialog() async {
-    final notes = await showDialog<String>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Упражнение завершено!"),
-            content: TextField(
-              controller: _notesController,
-              decoration: InputDecoration(
-                labelText: 'Добавить заметки',
-                hintText: 'Опишите ваше состояние...',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-              autofocus: true,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Пропустить'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, _notesController.text),
-                child: Text('Сохранить'),
-              ),
-            ],
-          ),
-    );
-
-    final newHistory = ExerciseHistory(
-      exerciseName: widget.exercise.title,
-      dateTime: DateTime.now(),
-      duration: Duration(seconds: _totalDuration),
-      notes: notes,
-    );
-
-    await _historyRepo.addHistory(newHistory);
-    _notesController.clear();
-
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Упражнение завершено!"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_selectedSound != null)
-                  Text('Использована мелодия: ${_selectedSound!.name}'),
-                SizedBox(height: 10),
-                Text('Длительность: ${_formatTime(_totalDuration)}'),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  _timerPlayer.stop();
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          ),
-    );
   }
 
   String _formatTime(int seconds) {
@@ -210,7 +353,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
 
     if (selectedTime != null && selectedTime > 0) {
-      _startTimer(selectedTime);
+      _startSet(selectedTime);
     }
   }
 
@@ -229,6 +372,36 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       await prefs.setString('selectedSound', sound.path);
       setState(() => _selectedSound = sound);
     }
+  }
+
+  Widget _buildSafetyIndicator() {
+    final safetyLevel = 10 - widget.exercise.maxPainLevel;
+
+    return Row(
+      children: [
+        Icon(Icons.medical_services, color: _getSafetyColor(safetyLevel)),
+        SizedBox(width: 8),
+        Expanded(
+          child: LinearProgressIndicator(
+            value: safetyLevel / 10,
+            color: _getSafetyColor(safetyLevel),
+            minHeight: 10,
+          ),
+        ),
+        SizedBox(width: 8),
+        Text(
+          "Безопасность: $safetyLevel/10",
+          style: TextStyle(fontSize: 12, color: Colors.white),
+        ),
+      ],
+    );
+  }
+
+  Color _getSafetyColor(int level) {
+    if (level >= 8) return Colors.green;
+    if (level >= 6) return Colors.greenAccent;
+    if (level >= 4) return Colors.orange;
+    return Colors.red;
   }
 
   @override
@@ -253,6 +426,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  //_buildSafetyIndicator(),
+                  //const SizedBox(height: 10),
+
                   // Общее описание
                   Text(
                     widget.exercise.generalDescription,
@@ -317,7 +493,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               ),
             ),
 
-            // Таймер
+            // Панель управления подходами
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -332,20 +508,37 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               ),
               child: Column(
                 children: [
+                  // Отображение количества подходов
+                  Text(
+                    'Подходы: $_completedSets',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Таймер
                   Text(
                     _formatTime(_remainingSeconds),
                     style: TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
-                      color: _isRunning ? Colors.red : Colors.blue,
+                      color: _isRunning ? Colors.orange : Colors.blue,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (!_isRunning && _remainingSeconds == 0)
-                    ElevatedButton(
-                      onPressed: _openTimerPicker,
-                      child: const Text('Начать упражнение'),
-                    ),
+
+                  // Индикатор прогресса
+                  LinearProgressIndicator(
+                    value: _progress,
+                    minHeight: 8,
+                    backgroundColor: Colors.grey[300],
+                    color: Colors.blue,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Управление таймером
                   if (_isRunning || _remainingSeconds > 0)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -364,6 +557,40 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                         ),
                       ],
                     ),
+
+                  // Кнопки управления подходами
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Кнопка добавления подхода
+                      if (!_isRunning)
+                        ElevatedButton(
+                          onPressed: _openTimerPicker,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: const Text('Добавить подход'),
+                        ),
+
+                      // Кнопка завершения упражнения
+                      if (_completedSets > 0)
+                        ElevatedButton(
+                          onPressed: _completeExercise,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: const Text('Завершить упражнение'),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),

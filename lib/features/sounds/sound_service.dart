@@ -6,14 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'audio_player_utils.dart';
 import '../../data/models/sound.dart';
 
 // Сервис для работы со звуками: воспроизведение, хранение, управление громкостью
 class SoundService {
   static final AudioPlayer previewPlayer =
       AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-  static final List<Sound> sounds = [
+  static final List<Sound> defaultSounds = [
     Sound(
       name: "Сигнал 1",
       path: "sounds/ending-sound-effect.mp3",
@@ -30,35 +29,35 @@ class SoundService {
   }
 
   static Future<void> playSound(Sound sound) async {
-    if (Platform.isWindows) {
-      await AudioPlayerUtils.playSound(
-        sound.path,
-        isAsset: sound.isAsset,
-        volume: sound.volume,
-      );
-    } else if (Platform.isAndroid) {
-      try {
-        await previewPlayer.stop();
-        if (sound.isAsset) {
-          await previewPlayer.play(AssetSource(sound.path));
+    try {
+      await previewPlayer.stop();
+      if (sound.isAsset) {
+        await previewPlayer.play(AssetSource(sound.path), volume: sound.volume);
+      } else {
+        final file = File(sound.path);
+        if (await file.exists()) {
+          await previewPlayer.play(DeviceFileSource(sound.path));
         } else {
-          final file = File(sound.path);
-          if (await file.exists()) {
-            await previewPlayer.play(DeviceFileSource(sound.path));
-          } else {
-            debugPrint("Фаил не найден: ${sound.path}");
-          }
+          debugPrint("Фаил не найден: ${sound.path}");
         }
-      } catch (e) {
-        debugPrint("Ошибка проигрывания мелодии: $e");
-        rethrow;
       }
+    } catch (e) {
+      debugPrint("Ошибка проигрывания мелодии: $e");
+      rethrow;
     }
   }
 
-  static Future<List<Sound>> getAllSounds() =>
-      Future.value([...sounds, ...customSounds]);
+  // Получение всех звуков (стандартные + пользовательские)
+  static Future<List<Sound>> getAllSounds() async {
+    return [...defaultSounds, ...customSounds];
+  }
 
+  // Вспомогательные методы
+  static String _getFileName(String filePath) {
+    return filePath.split('/').last.split('.').first;
+  }
+
+  // Загрузка пользовательских звуков из SharedPreferences
   static Future<void> _loadCustomSounds() async {
     final prefs = await SharedPreferences.getInstance();
     final customPaths = prefs.getStringList('customSounds') ?? [];
@@ -66,7 +65,7 @@ class SoundService {
     for (var path in customPaths) {
       if (await File(path).exists()) {
         // Проверяем существует ли файл
-        final fileName = path.split('/').last;
+        final fileName = _getFileName(path);
         customSounds.add(
           Sound(
             name: fileName,
@@ -84,7 +83,7 @@ class SoundService {
   }
 
   // Добавление пользовательского звука
-  static Future<bool> addCustomSound(String filePath) async {
+  static Future<bool> _addCustomSound(String filePath) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final soundDir = Directory(path.join(dir.path, 'sounds'));
@@ -94,24 +93,14 @@ class SoundService {
       }
 
       final fileName = path.basename(filePath);
-      final newPath = path.join(soundDir.path, fileName);
+      final uniqueName = await _generateUniqueName(soundDir.path, fileName);
+      final newPath = path.join(soundDir.path, uniqueName);
 
-      String uniqueName = fileName; // По умолчанию - оригинальное имя
-      String actualPath = newPath;
-
-      if (await File(newPath).exists()) {
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final uniqueName = '${timestamp}_$fileName';
-        actualPath = path.join(soundDir.path, uniqueName); // Обновляем путь
-        await File(filePath).copy(actualPath);
-      } else {
-        await File(filePath).copy(newPath);
-        customSounds.add(Sound(name: fileName, path: newPath, isAsset: false));
-      }
+      await File(filePath).copy(newPath);
       customSounds.add(
         Sound(
           name: uniqueName,
-          path: actualPath,
+          path: newPath,
           isAsset: false,
           originalName: fileName,
         ),
@@ -123,30 +112,32 @@ class SoundService {
     }
   }
 
-  // Добавление пользовательского звука
-  static Future<bool> addCustomSoundinAndroid(PlatformFile file) async {
-    try {
-      if (await Permission.storage.request().isGranted) {
-        final dir = await getApplicationDocumentsDirectory();
-        final soundDir = Directory(path.join(dir.path, 'sounds'));
+  // Генерация уникального имени файла
+  static Future<String> _generateUniqueName(String dir, String fileName) async {
+    var uniqueName = fileName;
+    int counter = 1;
 
-        if (!await soundDir.exists()) {
-          await soundDir.create(recursive: true);
-        }
-
-        final newPath = path.join(soundDir.path, file.name);
-        await File(file.path!).copy(newPath);
-
-        await addCustomSound(newPath); // Обновляем список
-        return true;
-      }
-      return false;
-    } catch (e) {
-      debugPrint("Ошибка добавления звука: $e");
-      return false;
+    while (await File(path.join(dir, uniqueName)).exists()) {
+      uniqueName = "${counter}_$fileName";
+      counter++;
     }
+    return uniqueName;
   }
 
+  // Добавление звука через файловый менеджер (Android)
+  static Future<bool> addCustomSoundinAndroid(PlatformFile file) async {
+    if (!await Permission.storage.isGranted) {
+      await Permission.storage.request();
+    }
+
+    final result = await FilePicker.platform.pickFiles(type: FileType.audio);
+    if (result == null) return false;
+
+    final file = result.files.first;
+    return file.path != null ? await _addCustomSound(file.path!) : false;
+  }
+
+  // Сохранение громкости звука
   static Future<void> saveVolume(Sound sound) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('${sound.path}.volume', sound.volume);

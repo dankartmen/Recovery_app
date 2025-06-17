@@ -10,6 +10,10 @@ class ExerciseTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 4, // тени на карточку
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+      ), // направление
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         onTap: onTap,
@@ -24,18 +28,22 @@ class ExerciseTile extends StatelessWidget {
                   Icon(Icons.fitness_center, color: Colors.blue),
                   SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      exercise.title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                    child: ListTile(
+                      title: Text(
+                        exercise.title, // название
+                        style: TextStyle(fontSize: 17),
                       ),
+                      /*subtitle: Text(
+                        exercise.generalDescription,
+                        maxLines: 2,
+                      ),*/
+                      //  общее описание
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 10),
-              if (exercise.tags.isNotEmpty)
+              if (exercise.tags.isNotEmpty) // теги упражнения
                 Wrap(
                   spacing: 8,
                   children:
@@ -49,11 +57,6 @@ class ExerciseTile extends StatelessWidget {
                           )
                           .toList(),
                 ),
-              SizedBox(height: 10),
-              Text(
-                'Сложность: ${exercise.maxPainLevel}/10 боли',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
             ],
           ),
         ),

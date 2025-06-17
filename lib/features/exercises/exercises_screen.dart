@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/models.dart';
+import '../../services/auth_service.dart';
 import 'exercise_detail_screen.dart';
 import 'exercise_tile.dart';
-
-// Экран отображения списка упражнений с фильтрацией по данным восстановления
+import '../../services/exercise_service.dart';
 
 class ExercisesScreen extends StatefulWidget {
   final RecoveryData recoveryData;
@@ -15,29 +16,69 @@ class ExercisesScreen extends StatefulWidget {
   _ExercisesScreenState createState() => _ExercisesScreenState();
 }
 
-// Состояние для ExercisesScreen
 class _ExercisesScreenState extends State<ExercisesScreen> {
-  late List<Exercise> _exercises; // Отложенная инициализация списка упражнений
+  List<Exercise> _exercises = [];
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _exercises = _getFilteredExercises(); // Инициализируем список
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadExercises();
+    });
   }
 
-  // Обновление виджета при изменении recoveryData
-  @override
-  void didUpdateWidget(ExercisesScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.recoveryData != oldWidget.recoveryData) {
-      // Перефильтровываем упражнения, если recoveryData изменился
+  Future<void> _loadExercises() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      debugPrint(
+        'Загрузка упражнений для травмы: '
+        '${widget.recoveryData.specificInjury} и уровня боли: '
+        '${widget.recoveryData.painLevel}',
+      );
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final exerciseService = ExerciseService(authService: authService);
+      final exercises = await exerciseService.getExercises(
+        injuryType: widget.recoveryData.specificInjury,
+      );
+
+      // Фильтрация по уровню боли
+      final filtered =
+          exercises.where((exercise) {
+            final bool matches =
+                exercise.maxPainLevel >= widget.recoveryData.painLevel;
+            if (!matches) {
+              debugPrint(
+                'Упражнение "${exercise.title}" не подходит по боли: '
+                'Требуется: >= ${exercise.maxPainLevel}, '
+                'У пользователя: ${widget.recoveryData.painLevel}',
+              );
+            }
+            return matches;
+          }).toList();
+
+      debugPrint('После фильтрации осталось: ${filtered.length} упражнений');
+
       setState(() {
-        _exercises = _getFilteredExercises();
+        _exercises = filtered;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+      debugPrint('Ошибка загрузки упражнений: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
       });
     }
   }
 
-  // Навигация к детальному экрану упражнения
   void _navigateToDetail(BuildContext context, Exercise exercise) {
     Navigator.push(
       context,
@@ -47,33 +88,63 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     );
   }
 
-  // Построение интерфейса списка упражнений
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: _exercises.length, // Используем _exercises
-      itemBuilder: (context, index) {
-        final exercise = _exercises[index]; // Используем _exercises
-        return ExerciseTile(
-          exercise: exercise,
-          onTap:
-              () => Navigator.pushNamed(
-                context,
-                '/exercise',
-                arguments: _exercises[index], // Используем _exercises
-              ),
-        );
-      },
+    return Scaffold(
+      appBar: AppBar(title: Text('Упражнения')),
+      body: _buildBody(),
     );
   }
 
-  // Фильтрация упражнений по параметрам восстановления
-  List<Exercise> _getFilteredExercises() {
-    return exampleExercises.where((exercise) {
-      return exercise.suitableFor.contains(
-            widget.recoveryData.specificInjury,
-          ) &&
-          exercise.maxPainLevel >= widget.recoveryData.painLevel;
-    }).toList();
+  Widget _buildBody() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Text(
+            'Ошибка: $_error\n\nПопробуйте снова',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    if (_exercises.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.fitness_center, size: 64, color: Colors.grey),
+            SizedBox(height: 20),
+            Text('Нет подходящих упражнений', style: TextStyle(fontSize: 18)),
+            SizedBox(height: 10),
+            Text(
+              'Попробуйте изменить параметры восстановления',
+              style: TextStyle(color: Colors.grey),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _loadExercises,
+              child: Text('Повторить попытку'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _exercises.length,
+      itemBuilder: (context, index) {
+        final exercise = _exercises[index];
+        return ExerciseTile(
+          exercise: exercise,
+          onTap: () => _navigateToDetail(context, exercise),
+        );
+      },
+    );
   }
 }

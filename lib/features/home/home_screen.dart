@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
+import '../../data/models/history_model.dart';
+import '../../data/models/home_screen_model.dart';
 import '../../data/models/models.dart';
+import '../../data/models/training_schedule.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 import '../history/history_screen.dart';
 import '../profile/profile_screen.dart';
 import '../questionnaire/questionnaire_screen.dart';
 import '../exercises/exercises_screen.dart';
+import '../training_calendar/training_calendar_screen.dart';
 
 // Главный экран с навигацией между разделами
 class HomeScreen extends StatefulWidget {
@@ -18,26 +24,67 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  late RecoveryData _recoveryData;
-  final List<Widget> _screens = [];
+  late RecoveryData _currentRecoveryData;
+  late List<Widget> _screens = [];
   final QuestionnaireRepository _repository = QuestionnaireRepository();
+  late HomeScreenModel _homeModel;
+  bool _isAppInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _recoveryData = widget.recoveryData;
-    _initializeScreens();
+    _initializeApp();
     _loadLatestData();
+    _loadTrainingSchedule(); // Загружаем расписание
+  }
+
+  Future<void> _initializeApp() async {
+    await _loadTrainingSchedule();
+    await _loadLatestData();
+    _homeModel = Provider.of<HomeScreenModel>(context, listen: false);
+    _currentRecoveryData = widget.recoveryData;
+    _initializeScreens();
+    // Загрузка истории сразу при открытии приложения
+    final historyModel = Provider.of<HistoryModel>(context, listen: false);
+    await historyModel.loadHistory();
+
+    setState(() => _isAppInitialized = true);
+  }
+
+  Future<void> _loadTrainingSchedule() async {
+    try {
+      final box = await Hive.openBox<TrainingSchedule>('training_schedule');
+      final schedule = box.get('schedule');
+      if (schedule != null) {
+        _homeModel.updateSchedule(schedule); // ОБНОВЛЯЕМ МОДЕЛЬ
+      }
+    } catch (e) {
+      debugPrint('Ошибка загрузки расписания: $e');
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
   }
 
   void _initializeScreens() {
     _screens.addAll([
       ProfileScreen(
-        recoveryData: _recoveryData,
+        recoveryData: _currentRecoveryData,
         onProfileUpdated: _updateProfileData,
       ),
-      ExercisesScreen(recoveryData: _recoveryData),
-      HistoryScreen(),
+      ExercisesScreen(recoveryData: _currentRecoveryData),
+      // ИСПОЛЬЗУЕМ Consumer ДЛЯ ПОЛУЧЕНИЯ АКТУАЛЬНОГО РАСПИСАНИЯ
+      Consumer<HomeScreenModel>(
+        builder: (context, model, child) {
+          return HistoryScreen(
+            recoveryData: _currentRecoveryData,
+            schedule: model.schedule,
+          );
+        },
+      ),
+      TrainingCalendarScreen(recoveryData: _currentRecoveryData),
     ]);
   }
 
@@ -45,9 +92,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final data = await _repository.getLatestQuestionnaire();
     if (data != null) {
       setState(() {
-        _recoveryData = data;
+        _currentRecoveryData = data;
         _screens[0] = ProfileScreen(
-          recoveryData: _recoveryData,
+          recoveryData: _currentRecoveryData,
           onProfileUpdated: _updateProfileData,
         );
       });
@@ -57,35 +104,39 @@ class _HomeScreenState extends State<HomeScreen> {
   void _updateProfileData(RecoveryData newData) async {
     await _repository.saveQuestionnaire(newData);
     setState(() {
-      _recoveryData = newData;
-      _screens[0] = ProfileScreen(
-        recoveryData: _recoveryData,
-        onProfileUpdated: _updateProfileData,
-      );
+      _currentRecoveryData = newData;
+      // Пересоздаем экраны с новыми данными
+      _initializeScreens();
     });
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  // Обработчик нажатия на кнопку "Упражнения"
+  void _navigateToExercises(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => ExercisesScreen(recoveryData: _currentRecoveryData),
+      ),
+    );
   }
 
   Future<void> _editProfile() async {
     final updatedData = await Navigator.push<RecoveryData>(
       context,
       MaterialPageRoute(
-        builder: (context) => QuestionnaireScreen(initialData: _recoveryData),
-        settings: RouteSettings(arguments: _recoveryData),
+        builder:
+            (context) => QuestionnaireScreen(initialData: _currentRecoveryData),
+        settings: RouteSettings(arguments: _currentRecoveryData),
       ),
     );
 
     if (updatedData != null) {
       await _repository.saveQuestionnaire(updatedData);
       setState(() {
-        _recoveryData = updatedData;
+        _currentRecoveryData = updatedData;
         _screens[0] = ProfileScreen(
-          recoveryData: _recoveryData,
+          recoveryData: _currentRecoveryData,
           onProfileUpdated: _updateProfileData,
         );
       });
@@ -94,6 +145,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isAppInitialized) {
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
@@ -101,15 +155,35 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
+        selectedLabelStyle: TextStyle(
+          fontWeight: FontWeight.bold,
+        ), // более жирный шрифт на выбранной метке
+        unselectedLabelStyle: TextStyle(
+          color: Colors.grey,
+        ), // серый шрифт на не выбранной метке
         type: BottomNavigationBarType.fixed,
-        onTap: _onItemTapped,
+        onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person, color: Colors.blue),
+            label: 'Профиль',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.fitness_center),
+            activeIcon: Icon(Icons.fitness_center, color: Colors.blue),
             label: 'Упражнения',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'История'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            activeIcon: Icon(Icons.history, color: Colors.blue),
+            label: 'История',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            activeIcon: Icon(Icons.calendar_today, color: Colors.blue),
+            label: 'Календарь',
+          ),
         ],
       ),
     );

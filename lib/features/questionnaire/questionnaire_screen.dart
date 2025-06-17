@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/models.dart';
 import '../../data/repositories/questionnaire_repository.dart';
+import '../../services/auth_service.dart';
+import '../home/home_screen.dart';
 
 // Экран заполнения анкеты
 class QuestionnaireScreen extends StatefulWidget {
@@ -23,7 +26,6 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   late int _painLevel = widget.initialData?.painLevel ?? 0;
   late String _trainingTime = widget.initialData?.trainingTime ?? '';
   bool _consent = false;
-  final QuestionnaireRepository _repository = QuestionnaireRepository();
   late RecoveryData? _existingData = widget.initialData ?? null;
 
   @override
@@ -49,54 +51,56 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   }
 
   Future<void> _submitQuestionnaire() async {
-    if (_formKey.currentState!.validate() && _consent) {
-      _formKey.currentState!.save();
+    if (!_formKey.currentState!.validate() || !_consent) return;
 
-      final data = RecoveryData(
-        id: _existingData?.id, // Сохраняем ID при редактировании
-        name: _name,
-        gender: _gender,
-        weight: _weight,
-        height: _height,
-        mainInjuryType: _mainInjuryType,
-        specificInjury: _specificInjury,
-        painLevel: _painLevel,
-        trainingTime: _trainingTime,
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final questionnaireRepo = Provider.of<QuestionnaireRepository>(
+      context,
+      listen: false,
+    );
+
+    _formKey.currentState!.save();
+
+    final updatedData = RecoveryData(
+      id: _existingData?.id,
+      name: _name,
+      gender: _gender,
+      weight: _weight,
+      height: _height,
+      mainInjuryType: _mainInjuryType,
+      specificInjury: _specificInjury,
+      painLevel: _painLevel,
+      trainingTime: _trainingTime,
+    );
+
+    try {
+      // Сохраняем анкету локально
+      await questionnaireRepo.saveQuestionnaire(updatedData);
+
+      //  Сохраняем анкету на сервере
+      await questionnaireRepo.saveToServer(
+        updatedData,
+        authService.getBasicAuthHeader(),
+        authService.currentUser!.id!,
       );
 
-      try {
-        // 1. Сохраняем данные
-        await _repository.saveQuestionnaire(data);
+      //  Синхронизируем локальные данные с сервером
+      await questionnaireRepo.syncWithServer(
+        authService.getBasicAuthHeader(),
+        authService.currentUser!.id!,
+      );
 
-        // 2. Переходим на домашний экран с очисткой стека навигации
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/home',
-          (route) => false, // Удаляем все предыдущие маршруты
-          arguments: data, // Передаём сохранённые данные
-        );
-      } catch (e) {
-        // Обработка ошибок
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка сохранения: ${e.toString()}')),
-        );
-      }
-    } else if (!_consent) {
-      ScaffoldMessenger.of(
+      // Переходим на домашний экран
+      Navigator.pushReplacement(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Необходимо дать согласие')));
-    }
-  }
-
-  Future<void> _deleteQuestionnaire() async {
-    if (_existingData != null && _existingData!.id != null) {
-      final db = await _repository.getDatabase();
-      await db.delete(
-        'questionnaires',
-        where: 'id = ?',
-        whereArgs: [_existingData!.id],
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(recoveryData: updatedData),
+        ),
       );
-      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка сохранения: ${e.toString()}')),
+      );
     }
   }
 
@@ -257,12 +261,12 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                 ),
               const SizedBox(height: 20),
 
-              // Уровень боли
+              // Уровень дискомфорта
               TextFormField(
                 initialValue: _painLevel > 0 ? _painLevel.toString() : '',
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Уровень боли (1-10)',
+                  labelText: 'Уровень дискомфорта (1-10)',
                   hintText: 'Оцените по шкале от 1 до 10',
                   border: OutlineInputBorder(),
                 ),
