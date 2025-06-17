@@ -127,16 +127,9 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
         injuryType: widget.recoveryData.specificInjury,
       );
 
-      // Фильтрация по уровню боли (если нужно)
-      final filteredExercises =
-          exercises.where((exercise) {
-            return exercise.maxPainLevel >= widget.recoveryData.painLevel;
-          }).toList();
-
       setState(() {
         _exercises = exercises;
         _isLoading = false;
-        _schedule = _generateSchedule(widget.recoveryData);
       });
     } catch (e) {
       setState(() {
@@ -187,6 +180,31 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     // Для разнообразия - добавляем не все тренировки подряд
     return dayOfWeek <=
         daysPerWeek; //isTrainingDay && (date.day % (7 ~/ timesPerDay) == 0);
+  }
+
+  // Добавляем новый метод для генерации и сохранения расписания
+  Future<void> _generateAndSaveSchedule(RecoveryData data) async {
+    try {
+      final exerciseService = ExerciseService(
+        authService: Provider.of<AuthService>(context, listen: false),
+      );
+      final exercises = await exerciseService.getExercises(
+        injuryType: widget.recoveryData.specificInjury,
+      );
+
+      final newSchedule = _generateSchedule(data);
+      await _scheduleBox.put('schedule', newSchedule);
+
+      // Обновляем состояние главного экрана
+      Provider.of<HomeScreenModel>(
+        context,
+        listen: false,
+      ).updateSchedule(newSchedule);
+
+      setState(() => _schedule = newSchedule);
+    } catch (e) {
+      debugPrint('Ошибка генерации расписания: $e');
+    }
   }
 
   // Проверяем, нужно ли добавлять тренировку в этот день

@@ -29,40 +29,17 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 2
-        versionName = "0.0.3"
-    }
-
-    signingConfigs {
-        //create("debug") {  Удаляем создание debug-конфигурации, она уже существует
-        //    storeFile = File(project.rootDir, "debug.keystore") // debug.keystore должен существовать, если нет, то можно его создать
-        //    storePassword = "android"
-        //    keyAlias = "androiddebugkey"
-        //    keyPassword = "android"
-        //}
-        create("release"){
-            storeFile = file("my-release-key.jks")
-            storePassword = "nenen94D"
-            keyAlias = "my-alias"
-            keyPassword = "nenen94D"
-        }
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
     }
 
     buildTypes {
-        getByName("release") { // Получаем конфигурацию release
-            signingConfig = signingConfigs.getByName("debug")// Подписываем release-сборку debug-ключом
-            //isMinifyEnabled = true // Если нужно минифицировать код
-            //isShrinkResources = true // Если нужно удалять неиспользуемые ресурсы
+        release {
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
-
-    //buildTypes {
-    //    release {
-    //        // TODO: Add your own signing config for the release build.
-    //        // Signing with the debug keys for now, so `flutter run --release` works.
-    //        signingConfig = signingConfigs.getByName("debug")
-    //    }
-    //}
 }
 
 flutter {

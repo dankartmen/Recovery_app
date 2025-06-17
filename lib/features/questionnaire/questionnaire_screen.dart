@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/models.dart';
+import '../../data/models/training_calendar_model.dart';
+import '../../data/models/training_schedule.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 import '../../services/auth_service.dart';
 import '../home/home_screen.dart';
@@ -90,6 +93,22 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
         authService.currentUser!.id!,
       );
 
+      // Удаляем старое расписание и генерируем новое
+      final scheduleBox = await Hive.openBox<TrainingSchedule>(
+        'training_schedule',
+      );
+      await scheduleBox.clear();
+
+      // Получаем модель календаря
+      final calendarModel = Provider.of<TrainingCalendarModel>(
+        context,
+        listen: false,
+      );
+
+      // Генерируем новое расписание
+      await calendarModel.generateAndSaveSchedule(updatedData);
+
+      calendarModel.refresh();
       // Переходим на домашний экран
       Navigator.pushReplacement(
         context,

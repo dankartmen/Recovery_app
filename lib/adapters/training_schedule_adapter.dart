@@ -5,7 +5,7 @@ import '../data/models/training_schedule.dart';
 
 class TrainingScheduleAdapter extends TypeAdapter<TrainingSchedule> {
   @override
-  final int typeId = 4; // Уникальный ID (должен отличаться от других)
+  final int typeId = 4;
 
   @override
   TrainingSchedule read(BinaryReader reader) {

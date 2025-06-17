@@ -6,6 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/models/training_calendar_model.dart';
+import '../data/repositories/history_repository.dart';
+
 class AuthService with ChangeNotifier {
   static const String _prefKey = 'user_session';
   String? _username;
@@ -106,14 +109,21 @@ class AuthService with ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        await login(
-          username,
-          password,
-        ); // Автоматический вход после регистрации
-      } else {
-        final error =
-            jsonDecode(response.body)['detail'] ?? 'Неизвестная ошибка';
-        throw Exception(error);
+        final user = await login(username, password);
+
+        // После успешной регистрации и входа
+        if (user != null) {
+          final questionnaire = await fetchQuestionnaire();
+          if (questionnaire != null) {
+            final calendarModel = TrainingCalendarModel(
+              this,
+              HistoryRepository(this),
+            );
+            await calendarModel.generateAndSaveSchedule(questionnaire);
+          }
+        }
+
+        return user;
       }
     } catch (e) {
       setState(() => _errorMessage = e.toString());
