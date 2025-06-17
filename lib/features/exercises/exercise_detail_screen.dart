@@ -7,6 +7,7 @@ import '../../data/models/history_model.dart';
 import '../../data/models/models.dart';
 import '../../data/models/training_calendar_model.dart';
 import '../../services/auth_service.dart';
+import '../../style.dart';
 import '../sounds/sound_service.dart';
 import '../sounds/sound_selection_dialog.dart';
 import '../../data/models/exercise_history.dart';
@@ -407,8 +408,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.exercise.title),
+      appBar: buildAppBar(
+        widget.exercise.title,
         actions: [
           IconButton(
             icon: const Icon(Icons.music_note),
@@ -565,29 +566,16 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     children: [
                       // Кнопка добавления подхода
                       if (!_isRunning)
-                        ElevatedButton(
+                        primaryButton(
                           onPressed: _openTimerPicker,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                          ),
-                          child: const Text('Добавить подход'),
+                          text: 'Добавить подход',
                         ),
 
                       // Кнопка завершения упражнения
                       if (_completedSets > 0)
-                        ElevatedButton(
+                        primaryButton(
                           onPressed: _completeExercise,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                          ),
-                          child: const Text('Завершить упражнение'),
+                          text: 'Завершить упражнение',
                         ),
                     ],
                   ),

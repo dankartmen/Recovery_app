@@ -15,6 +15,7 @@ import '../../data/models/training_schedule.dart';
 import '../../data/repositories/history_repository.dart';
 import '../../services/auth_service.dart';
 import '../../services/exercise_service.dart';
+import '../../style.dart';
 import 'day_schedule_bottom_sheet.dart';
 
 class TrainingCalendarScreen extends StatefulWidget {
@@ -300,14 +301,14 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     final calendarModel = Provider.of<TrainingCalendarModel>(context);
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('Календарь тренировок')),
+        appBar: buildAppBar('Календарь тренировок'),
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: Text('Календарь тренировок')),
+        appBar: buildAppBar('Календарь тренировок'),
         body: Center(child: Text('Ошибка: $_error')),
       );
     }
@@ -315,7 +316,7 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     _exerciseHistory.sort((a, b) => a.dateTime.compareTo(b.dateTime));
     final firstDate = _exerciseHistory.first.dateTime;
     return Scaffold(
-      appBar: AppBar(title: Text('Календарь тренировок')),
+      appBar: buildAppBar('Календарь тренировок'),
       body: Column(
         children: [
           TableCalendar(

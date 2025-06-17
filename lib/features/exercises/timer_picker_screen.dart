@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../style.dart';
+
 // Экран выбора времени для таймера упражнения
 class TimerPickerScreen extends StatefulWidget {
   @override
@@ -13,7 +15,7 @@ class _TimerPickerScreenState extends State<TimerPickerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Выберите время')),
+      appBar: buildAppBar('Выберите время'),
       body: Column(
         children: [
           Expanded(
@@ -43,12 +45,8 @@ class _TimerPickerScreenState extends State<TimerPickerScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-                textStyle: const TextStyle(fontSize: 18),
-              ),
-              child: const Text('Установить время'),
+            child: primaryButton(
+              text: 'Установить время',
               onPressed: () {
                 final totalSeconds =
                     _minutes * 60 +

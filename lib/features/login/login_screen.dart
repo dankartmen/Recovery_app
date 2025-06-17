@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 import '../../services/auth_service.dart';
+import '../../style.dart';
 import '../register/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -81,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Вход')),
+      appBar: buildAppBar('Вход'),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Form(

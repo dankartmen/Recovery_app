@@ -6,6 +6,7 @@ import '../../data/models/training_calendar_model.dart';
 import '../../data/models/training_schedule.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 import '../../services/auth_service.dart';
+import '../../style.dart';
 import '../home/home_screen.dart';
 
 // Экран заполнения анкеты
@@ -126,13 +127,10 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.initialData == null
-              ? 'Новая анкета'
-              : 'Редактирование профиля',
-        ),
+      appBar: buildAppBar(
+        widget.initialData == null ? 'Новая анкета' : 'Редактирование профиля',
       ),
+
       body: _buildForm(),
       floatingActionButton: FloatingActionButton(
         onPressed: _submitQuestionnaire,
@@ -200,10 +198,9 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                   if (value == null || value.isEmpty) {
                     return 'Поле обязательно для заполнения';
                   }
-                  final weight = double.tryParse(value);
-                  if (weight == null || weight <= 0) {
-                    return 'Введите корректное значение';
-                  }
+                  final val = double.tryParse(value);
+                  if (val == null) return 'Некорректное число';
+                  if (val < 30 || val > 250) return 'Недопустимое значение';
                   return null;
                 },
                 onSaved: (value) => _weight = double.parse(value!),
@@ -223,8 +220,8 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                   if (value == null || value.isEmpty) {
                     return 'Поле обязательно для заполнения';
                   }
-                  final height = double.tryParse(value);
-                  if (height == null || height <= 0) {
+                  final val = double.tryParse(value);
+                  if (val == null || val <= 0) {
                     return 'Введите корректное значение';
                   }
                   return null;

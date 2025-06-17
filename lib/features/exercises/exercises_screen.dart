@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/models.dart';
 import '../../services/auth_service.dart';
+import '../../style.dart';
 import 'exercise_detail_screen.dart';
 import 'exercise_tile.dart';
 import '../../services/exercise_service.dart';
@@ -90,10 +91,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Упражнения')),
-      body: _buildBody(),
-    );
+    return Scaffold(appBar: buildAppBar('Упражнения'), body: _buildBody());
   }
 
   Widget _buildBody() {
@@ -127,10 +125,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
               style: TextStyle(color: Colors.grey),
             ),
             SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _loadExercises,
-              child: Text('Повторить попытку'),
-            ),
+            primaryButton(onPressed: _loadExercises, text: 'Повторить попытку'),
           ],
         ),
       );

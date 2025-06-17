@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/models/models.dart';
+import '../../style.dart';
 
 class ExerciseTile extends StatelessWidget {
   final Exercise exercise;
@@ -9,12 +10,7 @@ class ExerciseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4, // тени на карточку
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-      ), // направление
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return buildCard(
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),

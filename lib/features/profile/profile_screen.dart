@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/models.dart';
 import '../../services/auth_service.dart';
+import '../../style.dart';
 import '../questionnaire/questionnaire_screen.dart';
 
 // Экран профиля пользователя с отображением анкетных данных
@@ -55,9 +56,8 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Профиль'),
-        centerTitle: true, // Центрирование заголовка
+      appBar: buildAppBar(
+        'Профиль',
         actions: [
           IconButton(
             onPressed: () => _logout(context),
@@ -110,9 +110,7 @@ class ProfileScreen extends StatelessWidget {
     required String title,
     required List<Widget> children,
   }) {
-    return Card(
-      elevation: 2, // Тень
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return buildCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -181,12 +179,13 @@ class ProfileScreen extends StatelessWidget {
 
   // Навигация на экран редактирования анкеты
   void _navigateToQuestionnaire(BuildContext context) async {
-    final updatedData = await Navigator.pushAndRemoveUntil<RecoveryData>(
+    final updatedData = await Navigator.push<RecoveryData>(
       context,
-      MaterialPageRoute(
-        builder: (context) => QuestionnaireScreen(initialData: recoveryData),
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 300),
+        pageBuilder:
+            (_, __, ___) => QuestionnaireScreen(initialData: recoveryData),
       ),
-      (Route<dynamic> route) => false, // Удаляем все предыдущие экраны
     );
 
     if (updatedData != null && onProfileUpdated != null) {

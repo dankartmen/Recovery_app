@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../data/models/models.dart';
 import '../../data/models/training.dart';
+import '../../style.dart';
 
 class DayScheduleBottomSheet extends StatefulWidget {
   final DateTime day;
@@ -125,12 +126,12 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
             ),
           ],
 
-          ElevatedButton(
+          primaryButton(
             onPressed: () {
               _showAddTrainingDialog(context);
               _updateTrainings();
             },
-            child: Text('Добавить тренировку'),
+            text: 'Добавить тренировку',
           ),
         ],
       ),

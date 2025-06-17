@@ -23,6 +23,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../data/repositories/questionnaire_repository.dart';
 import '../../services/auth_service.dart';
+import '../../style.dart';
 
 // Экран истории выполненных упражнений
 class HistoryScreen extends StatefulWidget {
@@ -693,7 +694,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               // Если расписание в HomeScreenModel тоже пустое
               if (homeModel.schedule.trainings.isEmpty) {
                 return Scaffold(
-                  appBar: AppBar(title: Text('История упражнений')),
+                  appBar: buildAppBar('История упражнений'),
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
@@ -712,8 +713,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildContent(HistoryModel historyModel, TrainingSchedule schedule) {
     _historyList = historyModel.history;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('История упражнений'),
+      appBar: buildAppBar(
+        'История упражнений',
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
@@ -1059,8 +1060,8 @@ class PdfPreviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Предпросмотр отчета'),
+      appBar: buildAppBar(
+        'Предпросмотр отчета',
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
