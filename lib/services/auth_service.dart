@@ -172,6 +172,25 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  Future<void> resetPassword(String username, String newPassword) async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'new_password': newPassword}),
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('Пароль успешно изменен');
+      } else {
+        throw Exception('Ошибка сброса пароля: ${response.statusCode}');
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> logout() async {
     await _clearSession();
     _errorMessage = null;
