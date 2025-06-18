@@ -32,7 +32,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   bool _isRunning = false;
   int _completedSets = 0;
   int _painLevel = 0;
-
   int _totalDurationSeconds = 0;
   bool _isExerciseCompleted = false;
   bool _isCompleted = false;
@@ -40,18 +39,15 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   final AudioPlayer _timerPlayer = AudioPlayer();
   late HistoryRepository _historyRepo;
   final TextEditingController _notesController = TextEditingController();
-
   double _progress = 0.0;
+  int _currentSetDuration = 0;
+  bool _isSetCompleted = false;
 
-  int _currentSetDuration = 0; // Holds the duration of the current set
-  bool _isSetCompleted = false; // Indicates if the current set is completed
   @override
   void initState() {
     super.initState();
     _loadSoundSettings();
     _timerPlayer.setReleaseMode(ReleaseMode.stop);
-
-    // Инициализация HistoryRepository через AuthService
     final authService = Provider.of<AuthService>(context, listen: false);
     _historyRepo = HistoryRepository(authService);
   }
@@ -81,27 +77,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
-  // Управление таймером
-  void _toggleTimer() {
-    if (_isRunning) {
-      _timer?.cancel();
-    } else {
-      _startTimer(_remainingSeconds);
-    }
-    setState(() => _isRunning = !_isRunning);
-  }
-
-  void _resetTimer() {
-    _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-      _remainingSeconds = 0;
-    });
-  }
-
   void _startSet(int duration) {
-    _timer?.cancel(); // Отменяем предыдущий таймер
-
+    _timer?.cancel();
     setState(() {
       _currentSetDuration = duration;
       _remainingSeconds = duration;
@@ -110,12 +87,11 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       _progress = 0.0;
     });
 
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
-
       setState(() {
         if (_remainingSeconds > 0) {
           _remainingSeconds--;
@@ -125,15 +101,17 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           _isRunning = false;
           _isSetCompleted = true;
           _completedSets++;
-          //_totalDurationSeconds += _currentSetDuration;
           _playCompletionSound();
           _completeSet();
-
-          // Показываем уведомление о завершении подхода
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Подход $_completedSets завершен!'),
               duration: const Duration(seconds: 2),
+              backgroundColor: healthPrimaryColor,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }
@@ -147,36 +125,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       _isRunning = false;
       _remainingSeconds = 0;
       _isCompleted = true;
-      _playCompletionSound();
     });
-  }
-
-  // Шкала оценки боли
-  List<Widget> _buildPainScale() {
-    return [
-      const Text(
-        "Оцените болевые ощущения:",
-        style: TextStyle(fontWeight: FontWeight.bold),
-      ),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(
-          5,
-          (index) => IconButton(
-            icon: Icon(
-              Icons.favorite,
-              color: index < _painLevel ? Colors.red : Colors.grey,
-            ),
-            onPressed: () => setState(() => _painLevel = index + 1),
-          ),
-        ),
-      ),
-      if (_painLevel >= 4)
-        const Text(
-          "Прекратите упражнение и проконсультируйтесь с врачом!",
-          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-        ),
-    ];
   }
 
   void _completeExercise() async {
@@ -184,21 +133,27 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       context: context,
       builder: (context) {
         int localPainLevel = _painLevel;
-
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text("Упражнение завершено!"),
+              title: const Text(
+                "Упражнение завершено!",
+                style: TextStyle(color: healthTextColor),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: _notesController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Добавить заметки',
                         hintText: 'Опишите ваше состояние...',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
                       ),
                       maxLines: 3,
                       autofocus: true,
@@ -206,8 +161,12 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     const SizedBox(height: 20),
                     Text(
                       "Оцените болевые ощущения:",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: healthTextColor,
+                      ),
                     ),
+                    const SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: List.generate(
@@ -217,8 +176,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                             Icons.favorite,
                             color:
                                 index < localPainLevel
-                                    ? Colors.red
-                                    : Colors.grey,
+                                    ? healthPrimaryColor
+                                    : Colors.grey.shade300,
+                            size: 32,
                           ),
                           onPressed:
                               () => setDialogState(
@@ -228,11 +188,20 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                       ),
                     ),
                     if (localPainLevel >= 4)
-                      Text(
-                        "Прекратите упражнение и проконсультируйтесь с врачом!",
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        margin: const EdgeInsets.only(top: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "Прекратите упражнение и проконсультируйтесь с врачом!",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                   ],
@@ -241,14 +210,26 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Пропустить'),
+                  child: const Text(
+                    'Пропустить',
+                    style: TextStyle(color: healthSecondaryTextColor),
+                  ),
                 ),
-                TextButton(
+                ElevatedButton(
                   onPressed: () {
                     setState(() => _painLevel = localPainLevel);
                     Navigator.pop(context, _notesController.text);
                   },
-                  child: Text('Сохранить'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: healthPrimaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Сохранить',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             );
@@ -261,14 +242,13 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       exerciseName: widget.exercise.title,
       dateTime: DateTime.now(),
       duration: Duration(seconds: _totalDurationSeconds),
-      sets: _completedSets, // Сохраняем количество подходов
+      sets: _completedSets,
       notes: notes,
       painLevel: _painLevel,
     );
 
     final result = await _historyRepo.addHistory(newHistory);
     if (result > 0) {
-      // Обновляем обе модели
       Provider.of<HistoryModel>(
         context,
         listen: false,
@@ -278,9 +258,16 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         listen: false,
       ).refreshTrainingStatus();
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Упражнение сохранено в истории")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Упражнение сохранено в истории"),
+          backgroundColor: healthPrimaryColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
     _resetExercise();
   }
@@ -296,44 +283,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     });
   }
 
-  // Запуск таймера с обновлением прогресса
-  void _startTimer(int duration) {
-    _timer?.cancel();
-
-    setState(() {
-      _totalDuration = duration;
-      _remainingSeconds = duration;
-      _isRunning = true;
-    });
-
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      setState(() {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
-          _progress = 1 - (_remainingSeconds / _totalDuration);
-        } else {
-          _timer?.cancel();
-          _isRunning = false;
-          var _isCompleted = true;
-          _playCompletionSound();
-        }
-      });
-    });
-  }
-
   void _playCompletionSound() async {
     if (_selectedSound != null) {
       try {
         await SoundService.playSound(_selectedSound!);
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Ошибка воспроизведения звука")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Ошибка воспроизведения звука")),
+        );
       }
     }
   }
@@ -375,29 +332,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
-  Widget _buildSafetyIndicator() {
-    final safetyLevel = 10 - widget.exercise.maxPainLevel;
-
-    return Row(
-      children: [
-        Icon(Icons.medical_services, color: _getSafetyColor(safetyLevel)),
-        SizedBox(width: 8),
-        Expanded(
-          child: LinearProgressIndicator(
-            value: safetyLevel / 10,
-            color: _getSafetyColor(safetyLevel),
-            minHeight: 10,
-          ),
-        ),
-        SizedBox(width: 8),
-        Text(
-          "Безопасность: $safetyLevel/10",
-          style: TextStyle(fontSize: 12, color: Colors.white),
-        ),
-      ],
-    );
-  }
-
   Color _getSafetyColor(int level) {
     if (level >= 8) return Colors.green;
     if (level >= 6) return Colors.greenAccent;
@@ -408,8 +342,17 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildAppBar(
-        widget.exercise.title,
+      appBar: AppBar(
+        title: Text(
+          widget.exercise.title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: healthPrimaryColor,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: const Icon(Icons.music_note),
@@ -418,171 +361,301 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Основной контент
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  //_buildSafetyIndicator(),
-                  //const SizedBox(height: 10),
-
-                  // Общее описание
-                  Text(
-                    widget.exercise.generalDescription,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Специфическая информация
-                  if (widget.exercise.injurySpecificInfo.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Рекомендации для вашего случая:',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          widget.exercise.injurySpecificInfo.values.first,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
+      body: Container(
+        color: healthBackgroundColor,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Основной контент
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Общее описание
+                    Text(
+                      widget.exercise.generalDescription,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: healthTextColor,
+                        height: 1.5,
+                      ),
                     ),
+                    const SizedBox(height: 20),
 
-                  // Шаги выполнения
-                  const Text(
-                    'Шаги выполнения:',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  ...widget.exercise.steps.map(
-                    (step) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Row(
+                    // Специфическая информация
+                    if (widget.exercise.injurySpecificInfo.isNotEmpty)
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${widget.exercise.steps.indexOf(step) + 1}. ',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            'Рекомендации для вашего случая:',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: healthPrimaryColor,
+                            ),
                           ),
-                          Expanded(child: Text(step)),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: healthPrimaryColor.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: healthPrimaryColor.withOpacity(0.2),
+                              ),
+                            ),
+                            child: Text(
+                              widget.exercise.injurySpecificInfo.values.first,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
 
-                  // Изображение
-                  if (widget.exercise.imageUrl != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        widget.exercise.imageUrl!,
-                        fit: BoxFit.cover,
+                    // Шаги выполнения
+                    Text(
+                      'Шаги выполнения:',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: healthPrimaryColor,
                       ),
                     ),
-                ],
-              ),
-            ),
-
-            // Панель управления подходами
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Отображение количества подходов
-                  Text(
-                    'Подходы: $_completedSets',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(height: 12),
+                    ...widget.exercise.steps.map(
+                      (step) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: healthPrimaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '${widget.exercise.steps.indexOf(step) + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                step,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
-                  // Таймер
-                  Text(
-                    _formatTime(_remainingSeconds),
-                    style: TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: _isRunning ? Colors.orange : Colors.blue,
+                    // Изображение
+                    if (widget.exercise.imageUrl != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.network(
+                          widget.exercise.imageUrl!,
+                          fit: BoxFit.cover,
+                          height: 200,
+                          width: double.infinity,
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+              // Панель управления подходами
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Отображение количества подходов
+                    Text(
+                      'Подходы: $_completedSets',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: healthTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-                  // Индикатор прогресса
-                  LinearProgressIndicator(
-                    value: _progress,
-                    minHeight: 8,
-                    backgroundColor: Colors.grey[300],
-                    color: Colors.blue,
-                  ),
-                  const SizedBox(height: 16),
+                    // Таймер
+                    Text(
+                      _formatTime(_remainingSeconds),
+                      style: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            _isRunning
+                                ? healthPrimaryColor
+                                : healthSecondaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-                  // Управление таймером
-                  if (_isRunning || _remainingSeconds > 0)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            _isRunning ? Icons.pause : Icons.play_arrow,
+                    // Индикатор прогресса
+                    LinearProgressIndicator(
+                      value: _progress,
+                      minHeight: 10,
+                      backgroundColor: Colors.grey[300],
+                      color: healthPrimaryColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Управление таймером
+                    if (_isRunning || _remainingSeconds > 0)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_isRunning) {
+                                _timer?.cancel();
+                              } else {
+                                _startSet(_remainingSeconds);
+                              }
+                              setState(() => _isRunning = !_isRunning);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              shape: const CircleBorder(),
+                              padding: const EdgeInsets.all(16),
+                              backgroundColor: healthPrimaryColor,
+                            ),
+                            child: Icon(
+                              _isRunning ? Icons.pause : Icons.play_arrow,
+                              color: Colors.white,
+                              size: 32,
+                            ),
                           ),
-                          iconSize: 36,
-                          onPressed: _toggleTimer,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.stop),
-                          iconSize: 36,
-                          onPressed: _resetTimer,
-                        ),
+                          const SizedBox(width: 20),
+                          ElevatedButton(
+                            onPressed: () {
+                              _timer?.cancel();
+                              setState(() {
+                                _isRunning = false;
+                                _remainingSeconds = 0;
+                                _progress = 0.0;
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              shape: const CircleBorder(),
+                              padding: const EdgeInsets.all(16),
+                              backgroundColor: Colors.red,
+                            ),
+                            child: const Icon(
+                              Icons.stop,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    // Кнопки управления подходами
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        // Кнопка добавления подхода
+                        if (_completedSets == 0 && _remainingSeconds == 0)
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _openTimerPicker,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: healthSecondaryColor,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Начать упражнение',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 16),
+
+                        // Кнопка завершения упражнения
+                        if (_completedSets > 0)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _openTimerPicker,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: healthSecondaryColor,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon: const Icon(Icons.add, color: Colors.white),
+                              label: const Text(
+                                'Добавить подход',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 16),
+                        if (_completedSets > 0)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _completeExercise,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: healthPrimaryColor,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Завершить',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
-
-                  // Кнопки управления подходами
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Кнопка добавления подхода
-                      if (!_isRunning)
-                        primaryButton(
-                          onPressed: _openTimerPicker,
-                          text: 'Добавить подход',
-                        ),
-
-                      // Кнопка завершения упражнения
-                      if (_completedSets > 0)
-                        primaryButton(
-                          onPressed: _completeExercise,
-                          text: 'Завершить упражнение',
-                        ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

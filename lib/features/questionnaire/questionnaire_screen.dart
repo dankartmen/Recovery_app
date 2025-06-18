@@ -9,7 +9,6 @@ import '../../services/auth_service.dart';
 import '../../style.dart';
 import '../home/home_screen.dart';
 
-// Экран заполнения анкеты
 class QuestionnaireScreen extends StatefulWidget {
   final RecoveryData? initialData;
 
@@ -78,39 +77,29 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
     );
 
     try {
-      // Сохраняем анкету локально
       await questionnaireRepo.saveQuestionnaire(updatedData);
-
-      //  Сохраняем анкету на сервере
       await questionnaireRepo.saveToServer(
         updatedData,
         authService.getBasicAuthHeader(),
         authService.currentUser!.id!,
       );
-
-      //  Синхронизируем локальные данные с сервером
       await questionnaireRepo.syncWithServer(
         authService.getBasicAuthHeader(),
         authService.currentUser!.id!,
       );
 
-      // Удаляем старое расписание и генерируем новое
       final scheduleBox = await Hive.openBox<TrainingSchedule>(
         'training_schedule',
       );
       await scheduleBox.clear();
 
-      // Получаем модель календаря
       final calendarModel = Provider.of<TrainingCalendarModel>(
         context,
         listen: false,
       );
-
-      // Генерируем новое расписание
       await calendarModel.generateAndSaveSchedule(updatedData);
-
       calendarModel.refresh();
-      // Переходим на домашний экран
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -119,7 +108,14 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка сохранения: ${e.toString()}')),
+        SnackBar(
+          content: Text('Ошибка сохранения: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
     }
   }
@@ -127,35 +123,59 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildAppBar(
-        widget.initialData == null ? 'Новая анкета' : 'Редактирование профиля',
+      appBar: AppBar(
+        title: Text(
+          widget.initialData == null
+              ? 'Новая анкета'
+              : 'Редактирование профиля',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: healthPrimaryColor,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-
-      body: _buildForm(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _submitQuestionnaire,
-        child: const Icon(Icons.save),
-      ),
+      body: Container(color: healthBackgroundColor, child: _buildForm()),
     );
   }
 
   Widget _buildForm() {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Заголовок
+              Center(
+                child: Text(
+                  widget.initialData == null
+                      ? 'Заполните анкету для персонализации'
+                      : 'Обновите ваши данные',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: healthTextColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Divider(),
+              const SizedBox(height: 20),
+
+              // Секция персональных данных
+              _buildSectionTitle('Персональные данные'),
+              const SizedBox(height: 16),
+
               // Поле ФИО
               TextFormField(
                 initialValue: _name,
-                decoration: const InputDecoration(
-                  labelText: 'ФИО',
-                  hintText: 'Введите ваше полное имя',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: buildHealthInputDecoration('ФИО'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Поле обязательно для заполнения';
@@ -169,10 +189,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
               // Выбор пола
               DropdownButtonFormField<String>(
                 value: _gender.isNotEmpty ? _gender : null,
-                decoration: const InputDecoration(
-                  labelText: 'Пол',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: buildHealthInputDecoration('Пол'),
                 items:
                     ['Мужской', 'Женский'].map((String value) {
                       return DropdownMenuItem<String>(
@@ -185,57 +202,56 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Поле Вес
-              TextFormField(
-                initialValue: _weight > 0 ? _weight.toString() : '',
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Вес (кг)',
-                  hintText: 'Введите ваш вес',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Поле обязательно для заполнения';
-                  }
-                  final val = double.tryParse(value);
-                  if (val == null) return 'Некорректное число';
-                  if (val < 30 || val > 250) return 'Недопустимое значение';
-                  return null;
-                },
-                onSaved: (value) => _weight = double.parse(value!),
+              // Вес и рост в одной строке
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: _weight > 0 ? _weight.toString() : '',
+                      keyboardType: TextInputType.number,
+                      decoration: buildHealthInputDecoration('Вес (кг)'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Обязательно';
+                        }
+                        final val = double.tryParse(value);
+                        if (val == null) return 'Некорректно';
+                        if (val < 30 || val > 250) return 'Недопустимо';
+                        return null;
+                      },
+                      onSaved: (value) => _weight = double.parse(value!),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: _height > 0 ? _height.toString() : '',
+                      keyboardType: TextInputType.number,
+                      decoration: buildHealthInputDecoration('Рост (см)'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Обязательно';
+                        }
+                        final val = double.tryParse(value);
+                        if (val == null || val <= 0) return 'Некорректно';
+                        return null;
+                      },
+                      onSaved: (value) => _height = double.parse(value!),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
 
-              // Поле Рост
-              TextFormField(
-                initialValue: _height > 0 ? _height.toString() : '',
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Рост (см)',
-                  hintText: 'Введите ваш рост',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Поле обязательно для заполнения';
-                  }
-                  final val = double.tryParse(value);
-                  if (val == null || val <= 0) {
-                    return 'Введите корректное значение';
-                  }
-                  return null;
-                },
-                onSaved: (value) => _height = double.parse(value!),
-              ),
-              const SizedBox(height: 20),
+              // Секция медицинской информации
+              _buildSectionTitle('Медицинская информация'),
+              const SizedBox(height: 16),
 
               // Выбор типа травмы
               DropdownButtonFormField<String>(
                 value: _mainInjuryType.isNotEmpty ? _mainInjuryType : null,
-                decoration: const InputDecoration(
-                  labelText: 'Основной тип травмы/операции',
-                  border: OutlineInputBorder(),
+                decoration: buildHealthInputDecoration(
+                  'Основной тип травмы/операции',
                 ),
                 items:
                     injuryCategories.keys.map((String key) {
@@ -259,9 +275,8 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
               if (_mainInjuryType.isNotEmpty)
                 DropdownButtonFormField<String>(
                   value: _specificInjury,
-                  decoration: const InputDecoration(
-                    labelText: 'Конкретный вид травмы',
-                    border: OutlineInputBorder(),
+                  decoration: buildHealthInputDecoration(
+                    'Конкретный вид травмы',
                   ),
                   items:
                       injuryCategories[_mainInjuryType]!.map((String value) {
@@ -271,42 +286,80 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                         );
                       }).toList(),
                   validator:
-                      (value) =>
-                          value == null ? 'Выберите конкретную травму' : null,
+                      (value) => value == null ? 'Выберите травму' : null,
                   onChanged: (value) => _specificInjury = value!,
                 ),
               const SizedBox(height: 20),
 
-              // Уровень дискомфорта
-              TextFormField(
-                initialValue: _painLevel > 0 ? _painLevel.toString() : '',
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Уровень дискомфорта (1-10)',
-                  hintText: 'Оцените по шкале от 1 до 10',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Поле обязательно для заполнения';
-                  }
-                  final pain = int.tryParse(value);
-                  if (pain == null || pain < 1 || pain > 10) {
-                    return 'Введите значение от 1 до 10';
-                  }
-                  return null;
-                },
-                onSaved: (value) => _painLevel = int.parse(value!),
+              // Уровень дискомфорта с визуальной шкалой
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Уровень дискомфорта:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: healthSecondaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Slider(
+                          value: _painLevel.toDouble(),
+                          min: 1,
+                          max: 10,
+                          divisions: 9,
+                          label: _painLevel.toString(),
+                          activeColor: _getPainColor(_painLevel),
+                          inactiveColor: Colors.grey[300],
+                          onChanged: (value) {
+                            setState(() {
+                              _painLevel = value.toInt();
+                            });
+                          },
+                        ),
+                      ),
+                      Container(
+                        width: 40,
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$_painLevel',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: _getPainColor(_painLevel),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '1',
+                        style: TextStyle(color: healthSecondaryTextColor),
+                      ),
+                      Text(
+                        '5',
+                        style: TextStyle(color: healthSecondaryTextColor),
+                      ),
+                      Text(
+                        '10',
+                        style: TextStyle(color: healthSecondaryTextColor),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
 
               // Время на тренировки
               DropdownButtonFormField<String>(
                 value: _trainingTime.isNotEmpty ? _trainingTime : null,
-                decoration: const InputDecoration(
-                  labelText: 'Время на тренировки',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: buildHealthInputDecoration('Время на тренировки'),
                 items:
                     [
                       '15 минут/день',
@@ -319,28 +372,95 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                         child: Text(value),
                       );
                     }).toList(),
-                validator:
-                    (value) =>
-                        value == null ? 'Выберите время тренировок' : null,
+                validator: (value) => value == null ? 'Выберите время' : null,
                 onChanged: (value) => _trainingTime = value!,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
 
               // Согласие с политикой
-              CheckboxListTile(
-                title: const Text(
-                  'Я согласен с политикой конфиденциальности',
-                  style: TextStyle(fontSize: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: healthPrimaryColor.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                value: _consent,
-                onChanged: (value) => setState(() => _consent = value!),
-                controlAffinity: ListTileControlAffinity.leading,
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _consent,
+                      onChanged: (value) => setState(() => _consent = value!),
+                      activeColor: healthPrimaryColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: healthTextColor,
+                          ),
+                          children: [
+                            const TextSpan(text: 'Я согласен с '),
+                            TextSpan(
+                              text: 'политикой конфиденциальности',
+                              style: TextStyle(
+                                color: healthPrimaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 30),
+
+              // Кнопка сохранения
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _submitQuestionnaire,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: healthPrimaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Сохранить данные',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: healthPrimaryColor,
+      ),
+    );
+  }
+
+  Color _getPainColor(int level) {
+    if (level <= 3) return Colors.green;
+    if (level <= 6) return Colors.orange;
+    return Colors.red;
   }
 }

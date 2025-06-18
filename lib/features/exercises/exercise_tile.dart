@@ -21,37 +21,66 @@ class ExerciseTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.fitness_center, color: Colors.blue),
-                  SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: healthPrimaryColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.fitness_center,
+                      color: healthPrimaryColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
                   Expanded(
-                    child: ListTile(
-                      title: Text(
-                        exercise.title, // название
-                        style: TextStyle(fontSize: 17),
-                      ),
-                      /*subtitle: Text(
-                        exercise.generalDescription,
-                        maxLines: 2,
-                      ),*/
-                      //  общее описание
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          exercise.title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: healthTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          exercise.generalDescription,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: healthSecondaryTextColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 10),
-              if (exercise.tags.isNotEmpty) // теги упражнения
+              const SizedBox(height: 12),
+              if (exercise.tags.isNotEmpty)
                 Wrap(
                   spacing: 8,
                   children:
-                      exercise.tags
-                          .map(
-                            (tag) => Chip(
-                              label: Text(tag),
-                              backgroundColor: Colors.blue[50],
-                              labelStyle: TextStyle(fontSize: 12),
-                            ),
-                          )
-                          .toList(),
+                      exercise.tags.map((tag) {
+                        return Chip(
+                          label: Text(
+                            tag,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          backgroundColor: healthPrimaryColor.withOpacity(0.1),
+                          labelPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        );
+                      }).toList(),
                 ),
             ],
           ),

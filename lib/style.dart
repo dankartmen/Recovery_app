@@ -11,12 +11,6 @@ const healthSecondaryTextColor = Color(
 ); // Серый для второстепенного текста
 const healthDividerColor = Color(0xFFB0BEC5); // Цвет разделителей
 
-const primaryGradient = LinearGradient(
-  colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-);
-
 const cardColor = Color(0xFFF5F7FB);
 const textColor = Color(0xFF333333);
 const secondaryTextColor = Color(0xFF666666);
@@ -25,7 +19,10 @@ AppBar buildAppBar(String title, {List<Widget>? actions}) {
   return AppBar(
     title: Text(title, style: TextStyle(color: Colors.white)),
     flexibleSpace: Container(
-      decoration: BoxDecoration(gradient: primaryGradient),
+      decoration: BoxDecoration(
+        color: healthPrimaryColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
     ),
     actions: actions,
     iconTheme: IconThemeData(color: Colors.white),
@@ -47,11 +44,18 @@ ElevatedButton primaryButton({
   return ElevatedButton(
     onPressed: onPressed,
     style: ElevatedButton.styleFrom(
-      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      backgroundColor: healthPrimaryColor, // Основной зеленый цвет
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      backgroundColor: Color(0xFF6A11CB),
+      elevation: 4,
     ),
-    child: Text(text, style: TextStyle(fontSize: 16)),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.white, // Белый текст для контраста
+      ),
+    ),
   );
 }
 

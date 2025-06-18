@@ -84,7 +84,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             .where((h) => isSameDay(h.dateTime, normalizedDay))
             .map((h) => h.exerciseName)
             .toSet();
-
+    if (completedExercises.isEmpty) {
+      return 0; // если нету выполненных тренировок
+    }
     // 2. Получаем запланированные тренировки
     final plannedTrainings = widget.schedule.trainings[normalizedDay] ?? [];
 
@@ -389,17 +391,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildStatItem(
+                        _pdfBuildStatItem(
                           'Всего упражнений',
                           historyList.length.toString(),
                           ttf,
                         ),
-                        _buildStatItem(
+                        _pdfBuildStatItem(
                           'Общее время',
                           _formatTotalDuration(historyList),
                           ttf,
                         ),
-                        _buildStatItem(
+                        _pdfBuildStatItem(
                           'Средний уровень боли',
                           _calculateAveragePain(historyList),
                           ttf,
@@ -570,7 +572,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   // Метод для создания элемента статистики
-  pw.Widget _buildStatItem(String label, String value, pw.Font font) {
+  pw.Widget _pdfBuildStatItem(String label, String value, pw.Font font) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -717,44 +719,66 @@ class _HistoryScreenState extends State<HistoryScreen> {
         'История упражнений',
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _refreshHistory,
-          ), // Кнопка обновления
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
+            icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
             onPressed: _openPdfPreview,
             tooltip: 'Экспорт для врача',
           ),
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        color: healthBackgroundColor,
         child: Column(
           children: [
-            // === ДОБАВЛЯЕМ ФИЛЬТРЫ ===
-            //_buildFilters(),
-            //const SizedBox(height: 10),
+            // Статистика вверху
+            _buildStatsHeader(),
+            const SizedBox(height: 16),
 
-            // Существующий график (можно упростить по вашему желанию)
-            //_buildSimpleProgressIndicator(_historyList),
+            // Фильтры
+            _buildFilters(),
+            const SizedBox(height: 16),
 
-            // === ДОБАВЛЯЕМ ТАЙМЛАЙН ВОССТАНОВЛЕНИЯ ===
+            // Таймлайн восстановления
             _buildRecoveryTimeline(),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
 
-            // Существующий список
-            Expanded(
-              child: ListView.builder(
-                itemCount: _historyList.length,
-                itemBuilder:
-                    (context, index) => _buildHistoryItem(_historyList[index]),
+            // Заголовок списка
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Text(
+                    'История упражнений',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: healthTextColor,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Всего: ${_historyList.length}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: healthSecondaryTextColor,
+                    ),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: 8),
+
+            // Список истории
+            Expanded(
+              child:
+                  _historyList.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        itemCount: _historyList.length,
+                        itemBuilder:
+                            (context, index) =>
+                                _buildHistoryItem(_historyList[index]),
+                      ),
             ),
           ],
         ),
@@ -762,100 +786,250 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildSimpleProgressIndicator(List<ExerciseHistory> history) {
-    // Простой индикатор прогресса вместо сложного графика
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Column(
+  Widget _buildStatsHeader() {
+    final totalDuration = _historyList.fold<Duration>(
+      Duration.zero,
+      (prev, element) => prev + element.duration,
+    );
+
+    final totalSets = _historyList.fold<int>(0, (sum, item) => sum + item.sets);
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          LinearProgressIndicator(
-            value: _calculateWeeklyProgress(history),
-            minHeight: 12,
-            backgroundColor: Colors.grey[300],
-            color: Colors.green,
+          _buildStatItem(
+            'Упражнений',
+            _historyList.length.toString(),
+            Icons.fitness_center,
+            healthPrimaryColor,
           ),
-          const SizedBox(height: 5),
-          const Text(
-            "Прогресс за неделю",
-            style: TextStyle(color: Colors.white70),
+          _buildStatItem(
+            'Подходов',
+            totalSets.toString(),
+            Icons.repeat,
+            healthSecondaryColor,
+          ),
+          _buildStatItem(
+            'Общее время',
+            '${totalDuration.inHours}ч ${totalDuration.inMinutes.remainder(60)}м',
+            Icons.access_time,
+            Color(0xFF6A11CB),
           ),
         ],
       ),
     );
   }
 
-  // Фильтры истории
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: healthTextColor,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: healthSecondaryTextColor),
+        ),
+      ],
+    );
+  }
+
   Widget _buildFilters() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
+      child: Row(
         children: [
-          // Фильтр по типу травмы
-          Row(
-            children: [
-              const Text(
-                "Тип травмы:",
-                style: TextStyle(color: Colors.white70),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: healthDividerColor),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: DropdownButton<String>(
-                  value: _selectedInjuryType,
-                  dropdownColor: Colors.deepPurple,
-                  style: const TextStyle(color: Colors.white),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedInjuryType = newValue!;
-                    });
-                  },
-                  items:
-                      <String>[
-                        'Все',
-                        'Ортопедические',
-                        'Нейрохирургические',
-                        'Спортивные',
-                        'Послеоперационные',
-                        'Хронические',
-                      ].map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                ),
+              child: DropdownButton<String>(
+                value: _selectedInjuryType,
+                isExpanded: true,
+                underline: const SizedBox(),
+                icon: Icon(Icons.arrow_drop_down, color: healthSecondaryColor),
+                style: TextStyle(color: healthTextColor),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedInjuryType = newValue!;
+                  });
+                },
+                items:
+                    <String>[
+                      'Все',
+                      'Ортопедические',
+                      'Нейрохирургические',
+                      'Спортивные',
+                      'Послеоперационные',
+                      'Хронические',
+                    ].map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
               ),
-            ],
+            ),
           ),
-
-          // Фильтр по периоду времени
-          Row(
-            children: [
-              const Text("Период:", style: TextStyle(color: Colors.white70)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: DropdownButton<String>(
-                  value: _selectedTimePeriod,
-                  dropdownColor: Colors.deepPurple,
-                  style: const TextStyle(color: Colors.white),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedTimePeriod = newValue!;
-                    });
-                  },
-                  items:
-                      <String>[
-                        'За всё время',
-                        'За неделю',
-                        'За месяц',
-                        'За 3 месяца',
-                      ].map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: healthDividerColor),
               ),
+              child: DropdownButton<String>(
+                value: _selectedTimePeriod,
+                isExpanded: true,
+                underline: const SizedBox(),
+                icon: Icon(Icons.arrow_drop_down, color: healthSecondaryColor),
+                style: TextStyle(color: healthTextColor),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedTimePeriod = newValue!;
+                  });
+                },
+                items:
+                    <String>[
+                      'За всё время',
+                      'За неделю',
+                      'За месяц',
+                      'За 3 месяца',
+                    ].map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecoveryTimeline() {
+    // Получаем дату первого упражнения
+    if (_historyList.isEmpty) {
+      return _buildEmptyTimelinePlaceholder();
+    }
+
+    _historyList.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    final firstExerciseDate = _historyList.first.dateTime;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Прогресс восстановления",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: healthTextColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 80,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: 30,
+              itemBuilder: (context, index) {
+                final day = firstExerciseDate.add(Duration(days: index));
+                final status = _getDayStatus(day, _historyList);
+                final color = _getStatusColor(status);
+
+                return Container(
+                  width: 60,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: healthDividerColor),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Д${index + 1}",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: healthSecondaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Icon(Icons.check_circle, color: color, size: 24),
+                      const SizedBox(height: 2),
+                      Text(
+                        DateFormat('dd.MM').format(day),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: healthSecondaryTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildStatusIndicator(Colors.green, 'Выполнено'),
+              const SizedBox(width: 16),
+              _buildStatusIndicator(Colors.yellow, 'Частично'),
+              const SizedBox(width: 16),
+              _buildStatusIndicator(Colors.grey, 'Не выполнено'),
             ],
           ),
         ],
@@ -863,108 +1037,179 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // Таймлайн восстановления
-  Widget _buildRecoveryTimeline() {
+  Widget _buildEmptyTimelinePlaceholder() {
     return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
+        ],
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Прогресс восстановления:",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          Icon(Icons.history_toggle_off, size: 40, color: healthSecondaryColor),
           const SizedBox(height: 8),
-          Expanded(
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: 30, // дней
-              itemBuilder: (context, index) {
-                if (index >= _historyList.length) {
-                  return _buildDayContainer(index, Colors.grey);
-                }
-                return _buildDayProgress(index);
-              },
-            ),
+          Text(
+            'Начните выполнять упражнения, чтобы отслеживать прогресс',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: healthSecondaryTextColor),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusIndicator(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: healthSecondaryTextColor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.history,
+              size: 72,
+              color: healthSecondaryColor.withOpacity(0.3),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'История упражнений пуста',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: healthTextColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Выполняйте упражнения, чтобы отслеживать свой прогресс',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: healthSecondaryTextColor),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHistoryItem(ExerciseHistory history) {
-    return AnimatedSwitcher(
-      duration: Duration(milliseconds: 300),
-      child: Container(
-        key: ValueKey(history.id), // Уникальный ключ для анимации
-        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+    return Container(
+      key: ValueKey(history.id),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
         ),
-        child: ListTile(
-          contentPadding: EdgeInsets.all(16),
-          leading: Icon(Icons.fitness_center, color: Colors.white),
-          title: Text(
-            history.exerciseName,
-            style: TextStyle(color: Colors.white),
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: healthPrimaryColor.withOpacity(0.1),
+            shape: BoxShape.circle,
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(history.formattedDate),
-              Text('Длительность: ${history.formattedDuration}'),
-              Text(
-                'Подходов: ${history.sets}',
-              ), // Показываем количество подходов
-              if (history.painLevel > 0) ...[
-                SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.favorite, color: Colors.red, size: 16),
-                    SizedBox(width: 4),
-                    Text(
-                      "Боль: ${history.painLevel}/5",
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ],
+          child: Icon(Icons.fitness_center, color: healthPrimaryColor),
+        ),
+        title: Text(
+          history.exerciseName,
+          style: TextStyle(fontWeight: FontWeight.w600, color: healthTextColor),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  size: 14,
+                  color: healthSecondaryTextColor,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  history.formattedDate,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: healthSecondaryTextColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Icon(
+                  Icons.access_time,
+                  size: 14,
+                  color: healthSecondaryTextColor,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  history.formattedDuration,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: healthSecondaryTextColor,
+                  ),
                 ),
               ],
+            ),
+            if (history.painLevel > 0) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.favorite, size: 14, color: Colors.red),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Уровень боли: ${history.painLevel}/5",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: healthSecondaryTextColor,
+                    ),
+                  ),
+                ],
+              ),
             ],
-          ),
-          // Добавляем индикатор безопасности
-          trailing: _buildSafetyIndicator(history),
+          ],
         ),
-      ),
-    );
-  }
-
-  // Индикатор безопасности для элемента истории
-  Widget _buildSafetyIndicator(ExerciseHistory history) {
-    final safetyLevel = 10 - history.painLevel;
-    return Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        color: _getSafetyColor(safetyLevel),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          safetyLevel.toString(),
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '${history.sets}',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: healthPrimaryColor,
+              ),
+            ),
+            Text(
+              'подходов',
+              style: TextStyle(fontSize: 12, color: healthSecondaryTextColor),
+            ),
+          ],
         ),
       ),
     );

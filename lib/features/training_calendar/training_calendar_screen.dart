@@ -299,97 +299,370 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final calendarModel = Provider.of<TrainingCalendarModel>(context);
+
     if (_isLoading) {
       return Scaffold(
-        appBar: buildAppBar('Календарь тренировок'),
-        body: Center(child: CircularProgressIndicator()),
+        appBar: AppBar(
+          title: const Text(
+            'Календарь тренировок',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: healthPrimaryColor,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: Container(
+          color: healthBackgroundColor,
+          child: const Center(
+            child: CircularProgressIndicator(color: healthPrimaryColor),
+          ),
+        ),
       );
     }
 
     if (_error != null) {
       return Scaffold(
-        appBar: buildAppBar('Календарь тренировок'),
-        body: Center(child: Text('Ошибка: $_error')),
+        appBar: AppBar(
+          title: const Text(
+            'Календарь тренировок',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: healthPrimaryColor,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: Container(
+          color: healthBackgroundColor,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Ошибка загрузки календаря',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: healthTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: healthSecondaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _initHive,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: healthPrimaryColor,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Попробовать снова',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       );
     }
 
     _exerciseHistory.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-    final firstDate = _exerciseHistory.first.dateTime;
+    final firstDate =
+        _exerciseHistory.isNotEmpty
+            ? _exerciseHistory.first.dateTime
+            : DateTime.now().subtract(const Duration(days: 30));
+
     return Scaffold(
-      appBar: buildAppBar('Календарь тренировок'),
-      body: Column(
-        children: [
-          TableCalendar(
-            locale: 'ru_RU', // русская локализация в календаре
-            startingDayOfWeek:
-                StartingDayOfWeek.monday, // начинается с понедельника
-            onFormatChanged:
-                (
-                  format,
-                ) {}, // формат - по умолч месяц(month), есть twoWeeks → const CalendarFormat week → const CalendarFormat
-            firstDay: firstDate,
-            lastDay: DateTime.now().add(Duration(days: 30)),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-              _showDayDetails(selectedDay);
-            },
-            headerStyle: HeaderStyle(
-              formatButtonVisible: false, // убрана кнопка для смены формата
-              titleCentered: true,
+      appBar: AppBar(
+        title: const Text(
+          'Календарь тренировок',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: healthPrimaryColor,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Container(
+        color: healthBackgroundColor,
+        child: Column(
+          children: [
+            // Статистика
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  _buildStatCard(
+                    'Тренировок',
+                    _schedule.trainings.values
+                        .fold(0, (sum, list) => sum + list.length)
+                        .toString(),
+                    healthPrimaryColor,
+                  ),
+                  const SizedBox(width: 12),
+                  _buildStatCard(
+                    'Выполнено',
+                    _exerciseHistory.length.toString(),
+                    healthSecondaryColor,
+                  ),
+                ],
+              ),
             ),
-            calendarBuilders: CalendarBuilders(
-              todayBuilder:
-                  (context, date, _) => Container(
+
+            // Календарь
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: TableCalendar(
+                    locale: 'ru_RU',
+                    startingDayOfWeek: StartingDayOfWeek.monday,
+                    firstDay: firstDate,
+                    lastDay: DateTime.now().add(const Duration(days: 60)),
+                    focusedDay: _focusedDay,
+                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
+                      _showDayDetails(selectedDay);
+                    },
+                    calendarStyle: CalendarStyle(
+                      todayDecoration: BoxDecoration(
+                        color: healthPrimaryColor.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: healthPrimaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                      selectedTextStyle: const TextStyle(color: Colors.white),
+                      weekendTextStyle: TextStyle(color: Colors.red[300]),
+                    ),
+                    headerStyle: HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: healthTextColor,
+                      ),
+                      leftChevronIcon: Icon(
+                        Icons.chevron_left,
+                        color: healthPrimaryColor,
+                      ),
+                      rightChevronIcon: Icon(
+                        Icons.chevron_right,
+                        color: healthPrimaryColor,
+                      ),
+                    ),
+                    daysOfWeekStyle: DaysOfWeekStyle(
+                      weekdayStyle: TextStyle(
+                        color: healthTextColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      weekendStyle: TextStyle(
+                        color: Colors.red[300],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    calendarBuilders: CalendarBuilders(
+                      defaultBuilder: (context, day, focusedDay) {
+                        return Container(
+                          margin: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border:
+                                isSameDay(day, DateTime.now())
+                                    ? Border.all(
+                                      color: healthPrimaryColor,
+                                      width: 1.5,
+                                    )
+                                    : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              day.day.toString(),
+                              style: TextStyle(
+                                color: _getDayColor(day),
+                                fontWeight:
+                                    isSameDay(day, DateTime.now())
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      todayBuilder: (context, day, focusedDay) {
+                        return Container(
+                          margin: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: healthPrimaryColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: healthPrimaryColor,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              day.day.toString(),
+                              style: TextStyle(
+                                color: healthPrimaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      markerBuilder: (context, date, events) {
+                        final trainings = _schedule.trainings[date] ?? [];
+                        if (trainings.isEmpty) return const SizedBox();
+
+                        final completedCount =
+                            trainings
+                                .where(
+                                  (training) => calendarModel
+                                      .isTrainingCompleted(training),
+                                )
+                                .length;
+
+                        final color =
+                            completedCount == trainings.length
+                                ? Colors.green
+                                : completedCount > 0
+                                ? healthPrimaryColor
+                                : Colors.grey;
+
+                        return Positioned(
+                          bottom: 1,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$completedCount/${trainings.length}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: color,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Подсказка
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: healthPrimaryColor,
                       shape: BoxShape.circle,
                     ),
-                    child: Center(child: Text(date.day.toString())),
                   ),
-              markerBuilder: (context, date, events) {
-                final trainings = _schedule.trainings[date] ?? [];
-                if (trainings.isEmpty) return SizedBox();
-
-                final completedCount =
-                    trainings
-                        .where(
-                          (training) =>
-                              calendarModel.isTrainingCompleted(training),
-                        )
-                        .length;
-
-                return Container(
-                  padding: EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color:
-                        completedCount == trainings.length
-                            ? Colors.green.withOpacity(0.3)
-                            : completedCount > 0
-                            ? Colors.blue.withOpacity(0.3)
-                            : Colors.transparent,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    completedCount.toString(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color:
-                          completedCount == trainings.length
-                              ? Colors.green
-                              : Colors.blue,
+                  const SizedBox(width: 8),
+                  const Text('Сегодня', style: TextStyle(fontSize: 14)),
+                  const SizedBox(width: 16),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                );
-              },
+                  const SizedBox(width: 8),
+                  const Text('Выполнено', style: TextStyle(fontSize: 14)),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getDayColor(DateTime day) {
+    if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
+      return Colors.red[300]!;
+    }
+    return healthTextColor;
+  }
+
+  Widget _buildStatCard(String title, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(fontSize: 14, color: healthSecondaryTextColor),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
