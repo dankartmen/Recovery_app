@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:path/path.dart';
-import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
-
 import '../../services/auth_service.dart';
 import '../../services/exercise_service.dart';
 import '../repositories/history_repository.dart';
@@ -54,7 +51,7 @@ class TrainingCalendarModel extends ChangeNotifier {
         'training_schedule',
       );
 
-      // Генерация расписания (адаптированный код из TrainingCalendarScreen)
+      // Генерация расписания
       final schedule = <DateTime, List<Training>>{};
       DateTime currentDate = DateTime.now();
       final endDate = currentDate.add(const Duration(days: 84));
@@ -135,10 +132,9 @@ class TrainingCalendarModel extends ChangeNotifier {
     final daysPerWeek = frequency['daysPerWeek'] ?? 3;
 
     // Проверяем соответствие дню недели
-    //final isTrainingDay = dayOfWeek <= daysPerWeek;
+    final isTrainingDay = dayOfWeek <= daysPerWeek;
 
     // Для разнообразия - добавляем не все тренировки подряд
-    return dayOfWeek <=
-        daysPerWeek; //isTrainingDay && (date.day % (7 ~/ timesPerDay) == 0);
+    return isTrainingDay && (date.day % (7 ~/ timesPerDay) == 0);
   }
 }

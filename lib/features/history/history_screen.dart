@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-
 import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -12,17 +11,13 @@ import '../../data/models/exercise_history.dart';
 import '../../data/models/history_model.dart';
 import '../../data/models/home_screen_model.dart';
 import '../../data/models/models.dart';
-import '../../data/models/training.dart';
 import '../../data/models/training_schedule.dart';
 import '../../data/repositories/history_repository.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import '../../data/repositories/questionnaire_repository.dart';
-import '../../services/auth_service.dart';
 import '../../style.dart';
 
 // Экран истории выполненных упражнений
@@ -43,9 +38,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   late HistoryRepository _repository;
   String _selectedInjuryType = "Все";
   String _selectedTimePeriod = "За всё время";
-  final AuthService _authService = AuthService();
-  DateTime? _firstExerciseDate;
-  List<ExerciseHistory> _history = [];
   List<ExerciseHistory> _historyList = [];
 
   @override
@@ -74,10 +66,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // Определение статуса дня
   int _getDayStatus(DateTime day, List<ExerciseHistory> history) {
     final normalizedDay = DateTime(day.year, day.month, day.day);
-    //final now = DateTime.now();
-
-    // Будущие дни всегда серые
-    //if (day.isAfter(now)) return 0;
     // 1. Проверяем выполненные упражнения за день
     final completedExercises =
         history
@@ -102,31 +90,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return allCompleted ? 3 : 2; // 3 = все выполнено, 2 = частично
   }
 
-  // Построение индикатора дня
-  Widget _buildDayProgress(int dayIndex) {
-    if (_historyList.isEmpty) {
-      return _buildDayContainer(dayIndex, Colors.grey);
-    }
-    final now = DateTime.now();
-    _historyList.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-    final firstDate = _historyList.first.dateTime;
-    final currentDate = firstDate.add(Duration(days: dayIndex));
-
-    /*
-    final currentDate = now
-        .subtract(Duration(days: now.weekday - 1))
-        .add(Duration(days: dayIndex)); // Понедельник текущей недели + dayIndex
-*/
-    // Проверка на будущее
-    if (currentDate.isAfter(now)) {
-      return _buildDayContainer(dayIndex, Colors.grey); // Будущие дни - серые
-    }
-
-    final status = _getDayStatus(currentDate, _historyList);
-
-    return _buildDayContainer(dayIndex, _getStatusColor(status));
-  }
-
   Color _getStatusColor(int status) {
     switch (status) {
       case 3:
@@ -140,128 +103,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Widget _buildDayContainer(int dayIndex, Color color) {
-    return Container(
-      width: 60,
-      margin: const EdgeInsets.only(right: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            "Д${dayIndex + 1}",
-            style: const TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 4),
-          Icon(Icons.check_circle, color: color),
-        ],
-      ),
-    );
-  }
-
   Future<int> _deleteHistory(int id) async {
     final result = await _repository.deleteHistory(id);
     if (result > 0) _refreshHistory();
     return result;
-  }
-
-  LineChartData _buildProgressChart(List<ExerciseHistory> history) {
-    // Сортируем по дате
-    history.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-
-    // Агрегируем данные по дням
-    Map<DateTime, Duration> dailyDurations = {};
-    for (var exercise in history) {
-      final date = DateTime(
-        exercise.dateTime.year,
-        exercise.dateTime.month,
-        exercise.dateTime.day,
-      );
-      if (dailyDurations.containsKey(date)) {
-        dailyDurations[date] = dailyDurations[date]! + exercise.duration;
-      } else {
-        dailyDurations[date] = exercise.duration;
-      }
-    }
-
-    // Получаем список дат и суммарной длительности
-    final dates = dailyDurations.keys.toList();
-    final durations = dailyDurations.values.toList();
-
-    return LineChartData(
-      lineTouchData: LineTouchData(enabled: true),
-      titlesData: FlTitlesData(
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            interval: 1, // Интервал между днями
-            getTitlesWidget: (value, meta) {
-              final date = dates[value.toInt()];
-              return Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text(
-                  DateFormat('dd.MM').format(date), // Отображаем дату
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              );
-            },
-          ),
-        ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget:
-                (value, meta) => Text(
-                  '${value.toInt()}', // Общая длительность в секундах
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-          ),
-        ),
-      ),
-      lineBarsData: [
-        LineChartBarData(
-          spots: List.generate(dates.length, (index) {
-            return FlSpot(
-              index.toDouble(),
-              durations[index].inSeconds.toDouble(),
-            ); // Общая длительность в секундах
-          }),
-          isCurved: true,
-          color: Colors.blue,
-          barWidth: 3,
-          dotData: FlDotData(show: false), // Не отображаем точки
-          belowBarData: BarAreaData(
-            show: true,
-            color: Colors.blue.withOpacity(0.1),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Вычисление прогресса за неделю (от 0 до 1)
-  double _calculateWeeklyProgress(List<ExerciseHistory> history) {
-    final now = DateTime.now();
-    final weekAgo = now.subtract(Duration(days: 7));
-
-    // Фильтруем упражнения за последнюю неделю
-    final recentExercises =
-        history.where((h) => h.dateTime.isAfter(weekAgo)).toList();
-
-    // Суммируем длительность за неделю
-    final totalDuration = recentExercises.fold<Duration>(
-      Duration.zero,
-      (previousValue, element) => previousValue + element.duration,
-    );
-
-    // Для примера: считаем прогресс относительно 5 часов (18000 секунд)
-    const maxDuration = Duration(hours: 5);
-    final progress = totalDuration.inSeconds / maxDuration.inSeconds;
-
-    return progress.clamp(0.0, 1.0);
   }
 
   @override
@@ -281,9 +126,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
     return pw.Font.ttf(fontData);
   }
-  // Метод для генерации PDF и возврата Uint8List
-  // В history_screen.dart
 
+  // Метод для генерации PDF и возврата Uint8List
   Future<Uint8List> _generatePdf(List<ExerciseHistory> historyList) async {
     final pdf = pw.Document();
 
@@ -473,40 +317,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ],
               ),
               pw.SizedBox(height: 20),
-
-              // Прогресс
-              /*pw.Text('Прогресс реабилитации:', style: headerStyle),
-              pw.SizedBox(height: 10),
-              pw.Container(
-                height: 30,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.grey300),
-                  borderRadius: pw.BorderRadius.circular(4),
-                ),
-                child: pw.Stack(
-                  children: [
-                    pw.Container(
-                      width: _calculateWeeklyProgress(historyList) * 500,
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.green300,
-                        borderRadius: pw.BorderRadius.circular(4),
-                      ),
-                    ),
-                    pw.Center(
-                      child: pw.Text(
-                        'Прогресс: ${(_calculateWeeklyProgress(historyList) * 100).toStringAsFixed(1)}%',
-                        style: pw.TextStyle(
-                          font: ttf,
-                          color: PdfColors.grey800,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 30),
-              */
               pw.SizedBox(height: 30),
               pw.Divider(),
               pw.Center(
@@ -520,17 +330,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
 
     return pdf.save();
-  }
-
-  // Метод для получения данных пациента
-  Future<RecoveryData> _getUserInfo() async {
-    try {
-      final questionnaireRepo = QuestionnaireRepository();
-      return await questionnaireRepo.getLatestQuestionnaire() ??
-          RecoveryData.empty();
-    } catch (e) {
-      return RecoveryData.empty();
-    }
   }
 
   // Обработка отсутствия данных
@@ -595,11 +394,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       ],
     );
-  }
-
-  String _buildPainIndicator(int painLevel) {
-    if (painLevel == 0) return '-';
-    return '${painLevel}/5';
   }
 
   String _formatTotalDuration(List<ExerciseHistory> history) {
@@ -1214,82 +1008,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
-
-  Color _getSafetyColor(int level) {
-    if (level >= 8) return Colors.green;
-    if (level >= 6) return Colors.greenAccent;
-    if (level >= 4) return Colors.orange;
-    return Colors.red;
-  }
-
-  void _savePdfToDevice() async {
-    final historyList = await _repository.getAllHistory();
-    final filteredList = _applyFilters(historyList);
-    final pdfBytes = await _generatePdf(filteredList);
-
-    // Получаем директорию для сохранения
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath =
-        '${directory.path}/RehabReport_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.pdf';
-
-    // Сохраняем файл
-    final file = File(filePath);
-    await file.writeAsBytes(pdfBytes);
-
-    // Показываем уведомление
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Отчет сохранен: $filePath'),
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
-
-  // Функция экспорта в PDF
-  void _exportToPDF() async {
-    final historyList = await _repository.getAllHistory();
-
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        build:
-            (pw.Context context) => [
-              pw.Header(
-                level: 0,
-                child: pw.Text(
-                  'История упражнений',
-                  style: pw.TextStyle(fontSize: 24),
-                ),
-              ),
-              pw.Table.fromTextArray(
-                headers: [
-                  'Дата',
-                  'Упражнение',
-                  'Длительность',
-                  'Подходы',
-                  'Боль',
-                ],
-                data:
-                    historyList.map((h) {
-                      return [
-                        h.formattedDate,
-                        h.exerciseName,
-                        h.formattedDuration,
-                        h.sets.toString(),
-                        h.painLevel > 0 ? '${h.painLevel}/5' : '-',
-                      ];
-                    }).toList(),
-              ),
-            ],
-      ),
-    );
-    // Отобразить диалог печати / сохранения
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
-  }
 }
 
 class PdfPreviewScreen extends StatelessWidget {
@@ -1346,7 +1064,7 @@ class PdfPreviewScreen extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Отчет сохранен: $filePath'),
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 30),
             action: SnackBarAction(
               label: 'Открыть',
               onPressed: () => _openFile(filePath),
@@ -1359,7 +1077,7 @@ class PdfPreviewScreen extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка сохранения: $e'),
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 5),
           ),
         );
       }

@@ -15,10 +15,4 @@ class User {
       throw FormatException('Ошибка парсинга пользователя: $e');
     }
   }
-  static int _parseId(dynamic id) {
-    if (id == null) return 0;
-    if (id is int) return id;
-    if (id is String) return int.tryParse(id) ?? 0;
-    throw FormatException('Invalid ID type: ${id.runtimeType}');
-  }
 }

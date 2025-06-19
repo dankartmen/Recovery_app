@@ -3,10 +3,12 @@ import 'package:auth_test/data/models/models.dart';
 import 'package:auth_test/data/repositories/questionnaire_repository.dart';
 import 'package:auth_test/data/models/user_model.dart';
 import 'package:flutter/foundation.dart';
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/models/training_calendar_model.dart';
+import '../data/models/training_schedule.dart';
 import '../data/repositories/history_repository.dart';
 
 class AuthService with ChangeNotifier {
@@ -198,6 +200,11 @@ class AuthService with ChangeNotifier {
 
     final questionnaireRepo = QuestionnaireRepository();
     await questionnaireRepo.clearLocalData();
+
+    final scheduleBox = await Hive.openBox<TrainingSchedule>(
+      'training_schedule',
+    );
+    await scheduleBox.clear();
   }
 
   void setState(VoidCallback fn) {

@@ -8,7 +8,6 @@ import '../../data/models/training_schedule.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 import '../history/history_screen.dart';
 import '../profile/profile_screen.dart';
-import '../questionnaire/questionnaire_screen.dart';
 import '../exercises/exercises_screen.dart';
 import '../training_calendar/training_calendar_screen.dart';
 
@@ -108,39 +107,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // Пересоздаем экраны с новыми данными
       _initializeScreens();
     });
-  }
-
-  // Обработчик нажатия на кнопку "Упражнения"
-  void _navigateToExercises(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) => ExercisesScreen(recoveryData: _currentRecoveryData),
-      ),
-    );
-  }
-
-  Future<void> _editProfile() async {
-    final updatedData = await Navigator.push<RecoveryData>(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) => QuestionnaireScreen(initialData: _currentRecoveryData),
-        settings: RouteSettings(arguments: _currentRecoveryData),
-      ),
-    );
-
-    if (updatedData != null) {
-      await _repository.saveQuestionnaire(updatedData);
-      setState(() {
-        _currentRecoveryData = updatedData;
-        _screens[0] = ProfileScreen(
-          recoveryData: _currentRecoveryData,
-          onProfileUpdated: _updateProfileData,
-        );
-      });
-    }
   }
 
   @override

@@ -332,13 +332,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
-  Color _getSafetyColor(int level) {
-    if (level >= 8) return Colors.green;
-    if (level >= 6) return Colors.greenAccent;
-    if (level >= 4) return Colors.orange;
-    return Colors.red;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -89,10 +89,6 @@ Future<void> _initializeApp() async {
   // Инициализация репозиториев и загрузка данных
   final authService = AuthService();
   await authService.initialize();
-
-  final historyRepo = HistoryRepository(authService);
-  final history = await historyRepo.getAllHistory();
-
   await SoundService.init(); // Инициализация звукового сервиса
 }
 

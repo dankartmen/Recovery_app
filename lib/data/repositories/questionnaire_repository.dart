@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/models.dart';
@@ -137,27 +136,5 @@ class QuestionnaireRepository {
   Future<void> clearLocalData() async {
     final db = await getDatabase();
     await db.delete('questionnaires');
-  }
-
-  Future<Database> _initDatabase() async {
-    final path = await getDatabasesPath();
-    return openDatabase(
-      join(path, 'questionnaires.db'),
-      onCreate: (db, version) {
-        return db.execute('''
-          CREATE TABLE $_tableName (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            gender TEXT NOT NULL,
-            weight REAL NOT NULL,
-            height REAL NOT NULL,
-            injuryType TEXT NOT NULL,
-            painLevel INTEGER NOT NULL,
-            trainingTime TEXT NOT NULL
-          )
-        ''');
-      },
-      version: 1,
-    );
   }
 }
