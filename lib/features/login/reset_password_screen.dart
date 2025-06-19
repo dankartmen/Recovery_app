@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
-import '../../style.dart';
+import '../../styles/style.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String username;
@@ -117,8 +117,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Введите новый пароль';
                             }
-                            if (value.length < 6) {
-                              return 'Пароль должен быть не менее 6 символов';
+                            if (value.length < 8) {
+                              return 'Пароль должен быть не менее 8 символов';
+                            }
+                            if (!value.contains(RegExp(r'[A-Z]'))) {
+                              return 'Добавьте заглавную букву (A-Z)';
+                            }
+                            if (!value.contains(RegExp(r'[a-z]'))) {
+                              return 'Добавьте строчную букву (a-z)';
+                            }
+                            if (!value.contains(RegExp(r'[0-9]'))) {
+                              return 'Добавьте цифру (0-9)';
+                            }
+                            if (!value.contains(
+                              RegExp(r'[!@#$%^&*(),.?":{}|<>]'),
+                            )) {
+                              return 'Добавьте специальный символ';
                             }
                             return null;
                           },
@@ -230,8 +244,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     Icon(Icons.info, color: healthPrimaryColor, size: 20),
                     SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        'Пароль должен содержать не менее 6 символов',
+                      child: const Text(
+                        '• Не менее 8 символов\n'
+                        '• Заглавную букву (A-Z)\n'
+                        '• Строчную букву (a-z)\n'
+                        '• Цифру (0-9)\n'
+                        '• Специальный символ',
                         style: TextStyle(
                           color: healthSecondaryTextColor,
                           fontSize: 14,

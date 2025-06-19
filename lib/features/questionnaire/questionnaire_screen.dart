@@ -6,7 +6,7 @@ import '../../data/models/training_calendar_model.dart';
 import '../../data/models/training_schedule.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 import '../../services/auth_service.dart';
-import '../../style.dart';
+import '../../styles/style.dart';
 import '../home/home_screen.dart';
 
 class QuestionnaireScreen extends StatefulWidget {

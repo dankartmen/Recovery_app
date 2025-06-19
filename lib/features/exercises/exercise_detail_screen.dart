@@ -7,7 +7,7 @@ import '../../data/models/history_model.dart';
 import '../../data/models/models.dart';
 import '../../data/models/training_calendar_model.dart';
 import '../../services/auth_service.dart';
-import '../../style.dart';
+import '../../styles/style.dart';
 import '../sounds/sound_service.dart';
 import '../sounds/sound_selection_dialog.dart';
 import '../../data/models/exercise_history.dart';

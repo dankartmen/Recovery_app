@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../data/models/models.dart';
 import '../../data/models/training.dart';
-import '../../style.dart';
+import '../../styles/style.dart';
 
 class DayScheduleBottomSheet extends StatefulWidget {
   final DateTime day;

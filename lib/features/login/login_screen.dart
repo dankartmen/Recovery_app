@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 import '../../services/auth_service.dart';
-import '../../style.dart';
+import '../../styles/style.dart';
 import '../register/register_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -147,16 +147,34 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: Colors.red.shade50,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Row(
+                                child: Column(
                                   children: [
-                                    const Icon(Icons.error, color: Colors.red),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        authService.errorMessage!,
-                                        style: const TextStyle(
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.error,
                                           color: Colors.red,
                                         ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            authService.errorMessage!,
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (authService.errorMessage!.contains(
+                                      'парол',
+                                    ))
+                                      const SizedBox(height: 8),
+                                    const Text(
+                                      'Проверьте требования к паролю',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ],

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../style.dart';
+import '../../styles/style.dart';
 
 class TimerPickerScreen extends StatefulWidget {
   @override

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
-import '../../style.dart';
+import '../../styles/style.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -137,8 +137,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 if (value == null || value.isEmpty) {
                                   return 'Введите пароль';
                                 }
-                                if (value.length < 6) {
-                                  return 'Пароль должен быть не менее 6 символов';
+                                if (value.length < 8) {
+                                  return 'Пароль должен быть не менее 8 символов';
+                                }
+                                if (!value.contains(RegExp(r'[A-Z]'))) {
+                                  return 'Добавьте заглавную букву (A-Z)';
+                                }
+                                if (!value.contains(RegExp(r'[a-z]'))) {
+                                  return 'Добавьте строчную букву (a-z)';
+                                }
+                                if (!value.contains(RegExp(r'[0-9]'))) {
+                                  return 'Добавьте цифру (0-9)';
+                                }
+                                if (!value.contains(
+                                  RegExp(r'[!@#$%^&*(),.?":{}|<>]'),
+                                )) {
+                                  return 'Добавьте специальный символ';
                                 }
                                 return null;
                               },

@@ -15,7 +15,7 @@ import '../../data/models/training_schedule.dart';
 import '../../data/repositories/history_repository.dart';
 import '../../services/auth_service.dart';
 import '../../services/exercise_service.dart';
-import '../../style.dart';
+import '../../styles/style.dart';
 import 'day_schedule_bottom_sheet.dart';
 
 class TrainingCalendarScreen extends StatefulWidget {
