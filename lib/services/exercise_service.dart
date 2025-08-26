@@ -9,7 +9,7 @@ class ExerciseService {
 
   ExerciseService({required this.authService});
 
-  static const String _baseUrl = 'http://178.130.49.215:8000/exercises';
+  static const String _baseUrl = 'http://176.114.91.241:8000/exercises';
 
   Future<List<Exercise>> getExercises({String? injuryType}) async {
     try {

@@ -4,7 +4,7 @@ import '../data/models/models.dart';
 
 class ExerciseAdapter extends TypeAdapter<Exercise> {
   @override
-  final int typeId = 2; // Уникальный идентификатор (должен отличаться от других адаптеров)
+  final int typeId = 2; // Уникальный идентификатор
 
   @override
   Exercise read(BinaryReader reader) {

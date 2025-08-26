@@ -75,7 +75,7 @@ void main() async {
 }
 
 Future<void> _initializeApp() async {
-  // Инициализация Hive, аутентификации и т.д.
+  // Инициализация Hive
   await Hive.initFlutter();
 
   // Регистрация адаптеров
@@ -110,10 +110,9 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: [
-        const Locale('ru', 'RU'), // Русская локаль
+        const Locale('ru', 'RU'), // Русская локальлизация
       ],
       routes: {
-        // nenen94D kermal
         // Конфигурация маршрутов приложения
         '/auth': (context) => LoginScreen(),
         '/home':
@@ -168,7 +167,6 @@ class MyApp extends StatelessWidget {
                     Scaffold(body: Center(child: Text('Страница не найдена'))),
           ),
       onGenerateRoute: (settings) {
-        // Обработка маршрутов с аргументами
         switch (settings.name) {
           case '/home':
             return MaterialPageRoute(

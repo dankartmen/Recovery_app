@@ -8,7 +8,7 @@ import '../models/models.dart';
 
 class QuestionnaireRepository {
   static const _tableName = 'questionnaires';
-  static const _baseUrl = 'http://178.130.49.215:8000';
+  static const _baseUrl = 'http://176.114.91.241:8000';
   Future<Database> getDatabase() async {
     return openDatabase(
       join(await getDatabasesPath(), 'recovery_app.db'),

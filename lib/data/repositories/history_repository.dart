@@ -6,7 +6,7 @@ import '../../services/auth_service.dart';
 import '../models/exercise_history.dart';
 
 class HistoryRepository {
-  static const String _baseUrl = 'http://178.130.49.215:8000';
+  static const String _baseUrl = 'http://176.114.91.241:8000';
   final AuthService authService;
   HistoryRepository(this.authService);
 

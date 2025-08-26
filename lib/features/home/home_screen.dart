@@ -33,21 +33,24 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initializeApp();
-    _loadLatestData();
-    _loadTrainingSchedule(); // Загружаем расписание
   }
 
   Future<void> _initializeApp() async {
-    await _loadTrainingSchedule();
-    await _loadLatestData();
-    _homeModel = Provider.of<HomeScreenModel>(context, listen: false);
-    _currentRecoveryData = widget.recoveryData;
-    _initializeScreens();
-    // Загрузка истории сразу при открытии приложения
-    final historyModel = Provider.of<HistoryModel>(context, listen: false);
-    await historyModel.loadHistory();
-
-    setState(() => _isAppInitialized = true);
+    final stopwatch = Stopwatch()..start();
+    try {
+      await _loadTrainingSchedule();
+      await _loadLatestData();
+      _homeModel = Provider.of<HomeScreenModel>(context, listen: false);
+      _currentRecoveryData = widget.recoveryData;
+      _initializeScreens();
+      final historyModel = Provider.of<HistoryModel>(context, listen: false);
+      await historyModel.loadHistory();
+      setState(() => _isAppInitialized = true);
+    } catch (e, stackTrace) {
+      debugPrint('Ошибка инициализации: $e\n$stackTrace');
+    } finally {
+      debugPrint('Время инициализации: ${stopwatch.elapsedMilliseconds}ms');
+    }
   }
 
   Future<void> _loadTrainingSchedule() async {

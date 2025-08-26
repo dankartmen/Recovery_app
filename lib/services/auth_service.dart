@@ -16,7 +16,7 @@ class AuthService with ChangeNotifier {
   String? _username;
   String? _password;
   User? _currentUser;
-  static const String _baseUrl = 'http://178.130.49.215:8000';
+  static const String _baseUrl = 'http://176.114.91.241:8000';
   bool _isLoading = false;
   String? _errorMessage;
   bool _isInitialized = false;

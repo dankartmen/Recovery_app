@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ],
                                     ),
                                     if (authService.errorMessage!.contains(
-                                      'парол',
+                                      'пароль',
                                     ))
                                       const SizedBox(height: 8),
                                     const Text(

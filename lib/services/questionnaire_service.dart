@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class QuestionnaireService {
-  final String _baseUrl = 'http://178.130.49.215:8000';
+  final String _baseUrl = 'http://176.114.91.241:8000';
 
   Future<http.Response> saveQuestionnaire(
     Map<String, dynamic> data,

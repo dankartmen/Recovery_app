@@ -15,7 +15,7 @@ class ExerciseHistory {
     required this.dateTime,
     required this.duration,
     this.notes,
-    this.sets = 1, // Добавляем поле для подходов
+    this.sets = 1,
     this.painLevel = 0,
   });
 

@@ -61,11 +61,12 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     super.dispose();
   }
 
+  // Загружаем доступные мелодии
   Future<void> _loadSoundSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final soundPath = prefs.getString('selectedSound');
 
-    // Поиск звука в списке доступных
+    // Поиск мелодии в списке доступных
     if (soundPath != null) {
       final allSounds = await SoundService.getAllSounds();
       setState(() {
@@ -77,6 +78,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
+  // Счётчик таймера
   void _startSet(int duration) {
     _timer?.cancel();
     setState(() {

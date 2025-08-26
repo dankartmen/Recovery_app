@@ -480,7 +480,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       builder: (context, historyModel, child) {
         // Если история загружается
         if (historyModel.isLoading) {
-          return Center(child: CircularProgressIndicator());
+          return Center(
+            child: CircularProgressIndicator(color: healthPrimaryColor),
+          );
         }
 
         // Если расписание еще не загружено
@@ -491,7 +493,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
               if (homeModel.schedule.trainings.isEmpty) {
                 return Scaffold(
                   appBar: buildAppBar('История упражнений'),
-                  body: Center(child: CircularProgressIndicator()),
+                  body: Center(
+                    child: CircularProgressIndicator(color: healthPrimaryColor),
+                  ),
                 );
               }
 
