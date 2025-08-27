@@ -1,24 +1,19 @@
 import 'dart:typed_data';
-import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
 import '../../data/models/exercise_history.dart';
 import '../../data/models/history_model.dart';
 import '../../data/models/home_screen_model.dart';
 import '../../data/models/models.dart';
 import '../../data/models/training_schedule.dart';
-import '../../data/repositories/history_repository.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../styles/style.dart';
+import 'pdf_preview_screen.dart';
 
 // Экран истории выполненных упражнений
 class HistoryScreen extends StatefulWidget {
@@ -35,10 +30,11 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  late HistoryRepository _repository;
   String _selectedInjuryType = "Все";
   String _selectedTimePeriod = "За всё время";
   List<ExerciseHistory> _historyList = [];
+  HistoryModel? _historyModel;
+  String? _error;
 
   @override
   void initState() {
@@ -49,17 +45,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   void _loadHistory() {
-    final historyModel = Provider.of<HistoryModel>(context, listen: false);
-    if (!historyModel.isInitialized) {
-      historyModel.loadHistory();
+    setState(() {
+      _error = null;
+    });
+    try {
+      final historyModel = Provider.of<HistoryModel>(context, listen: false);
+      if (!historyModel.isInitialized) {
+        historyModel.loadHistory();
+      }
+    } catch (e) {
+      setState(() {
+        _error = "Не удалось загрузить историю. Попробуйте снова.";
+      });
     }
   }
 
   @override
   void dispose() {
-    // Отписываемся при уничтожении виджета
-    final historyModel = Provider.of<HistoryModel>(context, listen: false);
-    historyModel.removeListener(_refreshHistory);
     super.dispose();
   }
 
@@ -103,15 +105,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Future<int> _deleteHistory(int id) async {
-    final result = await _repository.deleteHistory(id);
-    if (result > 0) _refreshHistory();
-    return result;
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _historyModel ??= Provider.of<HistoryModel>(context, listen: false);
     _refreshHistory();
   }
 
@@ -423,19 +420,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // Новый метод для перехода на экран просмотра PDF
   void _openPdfPreview() async {
-    final filteredList = _applyFilters(_historyList); // Применяем фильтры
-    final fileName =
-        'RehabReport_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.pdf';
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder:
-            (_) => PdfPreviewScreen(
-              generatePdf: () => _generatePdf(filteredList),
-              fileName: fileName,
-            ),
-      ),
-    );
+    try {
+      final filteredList = _applyFilters(_historyList);
+      final fileName =
+          'RehabReport_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.pdf';
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder:
+              (_) => PdfPreviewScreen(
+                generatePdf: () => _generatePdf(filteredList),
+                fileName: fileName,
+              ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка экспорта PDF: $e')));
+    }
   }
 
   // Применение фильтров к данным
@@ -511,6 +513,56 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildContent(HistoryModel historyModel, TrainingSchedule schedule) {
+    _historyList = historyModel.history;
+    if (_error != null || _historyList.isEmpty) {
+      return Scaffold(
+        appBar: buildAppBar('История упражнений'),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.history,
+                  size: 72,
+                  color: healthSecondaryColor.withOpacity(0.3),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _error ?? 'История упражнений пуста',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: healthTextColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _loadHistory,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: healthPrimaryColor,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Попробовать снова',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     _historyList = historyModel.history;
     return Scaffold(
       appBar: buildAppBar(
@@ -749,8 +801,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return _buildEmptyTimelinePlaceholder();
     }
 
-    _historyList.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-    final firstExerciseDate = _historyList.first.dateTime;
+    final sortedHistory = List<ExerciseHistory>.from(_historyList)
+      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    final firstExerciseDate =
+        sortedHistory.isNotEmpty
+            ? sortedHistory.first.dateTime
+            : DateTime.now();
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1011,92 +1067,5 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       ),
     );
-  }
-}
-
-class PdfPreviewScreen extends StatelessWidget {
-  final Future<Uint8List> Function() generatePdf;
-  final String fileName;
-
-  const PdfPreviewScreen({
-    Key? key,
-    required this.generatePdf,
-    required this.fileName,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildAppBar(
-        'Предпросмотр отчета',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: () async {
-              final pdfBytes = await generatePdf();
-              await _savePdf(pdfBytes, fileName, context);
-            },
-            tooltip: 'Сохранить отчет',
-          ),
-        ],
-      ),
-      body: PdfPreview(
-        build: (format) => generatePdf(),
-        canChangePageFormat: false,
-        canChangeOrientation: false,
-        canDebug: false,
-      ),
-    );
-  }
-
-  Future<void> _savePdf(
-    Uint8List pdfBytes,
-    String fileName,
-    BuildContext context,
-  ) async {
-    try {
-      // Получаем директорию для сохранения
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/$fileName';
-
-      // Сохраняем файл
-      final file = File(filePath);
-      await file.writeAsBytes(pdfBytes);
-
-      // Показываем уведомление
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Отчет сохранен: $filePath'),
-            duration: const Duration(seconds: 30),
-            action: SnackBarAction(
-              label: 'Открыть',
-              onPressed: () => _openFile(filePath),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка сохранения: $e'),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _openFile(String filePath) async {
-    if (Platform.isAndroid || Platform.isIOS) {
-      await OpenFile.open(filePath);
-    } else {
-      // Для десктопных платформ
-      final uri = Uri.file(filePath);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      }
-    }
   }
 }

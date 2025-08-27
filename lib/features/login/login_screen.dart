@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _autoLoginAttempted = false;
   bool _obscurePassword = true;
+  AuthService? _authService;
 
   Future<void> _navigateAfterLogin(AuthService authService) async {
     final questionnaireRepo = Provider.of<QuestionnaireRepository>(
@@ -40,31 +41,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _attemptAutoLogin() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-
-    if (!authService.isInitialized) {
-      await authService.initialize();
-      debugPrint('AuthService инициализирован');
-    }
-
-    if (authService.currentUser != null && !_autoLoginAttempted) {
-      debugPrint('Автоматический вход: ${authService.currentUser?.username}');
-      setState(() => _autoLoginAttempted = true);
-      await _navigateAfterLogin(authService);
-    } else {
-      debugPrint('Автоматический вход не выполнен');
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    _attemptAutoLogin();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _authService = Provider.of<AuthService>(context, listen: false);
+      _authService!.addListener(_onAuthChanged);
+      _authService!.initialize();
+    });
+  }
+
+  void _onAuthChanged() {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.currentUser != null && !_autoLoginAttempted) {
+      setState(() => _autoLoginAttempted = true);
+      _navigateAfterLogin(authService);
+    }
   }
 
   @override
   void dispose() {
+    _authService?.removeListener(_onAuthChanged);
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();

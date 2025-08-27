@@ -272,6 +272,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await authService.register(
         _usernameController.text,
         _passwordController.text,
+        context,
       );
       // После успешной регистрации закрываем экран
       if (mounted) Navigator.pop(context);

@@ -61,7 +61,9 @@ class HistoryRepository {
         return [];
       }
 
-      debugPrint("Отправка запроса для пользователя ID: $userId");
+      debugPrint(
+        "(HistoryRepository)Отправка запроса для пользователя ID: $userId",
+      );
       final response = await http.get(
         Uri.parse('$_baseUrl/users/$userId/history'),
         headers: {'Authorization': authHeader},
@@ -83,6 +85,7 @@ class HistoryRepository {
   }
 
   Future<List<ExerciseHistory>> getHistoryByDate(DateTime date) async {
+    debugPrint("Загружаю историю в getHistoryByDate");
     final allHistory = await getAllHistory();
     return allHistory.where((h) => isSameDay(h.dateTime, date)).toList();
   }

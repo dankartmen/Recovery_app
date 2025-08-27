@@ -1,6 +1,8 @@
+import 'package:auth_test/data/models/exercise_list_model.dart';
 import 'package:auth_test/data/repositories/history_repository.dart';
 import 'package:auth_test/features/login/login_screen.dart';
 import 'package:auth_test/services/auth_service.dart';
+import 'package:auth_test/services/exercise_service.dart';
 import 'package:flutter/material.dart';
 import 'package:auth_test/features/sounds/sound_service.dart';
 import 'package:auth_test/features/training_calendar/training_calendar_screen.dart';
@@ -27,49 +29,29 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _initializeApp();
 
+  final authService = AuthService();
+  final historyModel = HistoryModel(HistoryRepository(authService));
+  final trainingCalendarModel = TrainingCalendarModel();
+  final questionnaireRepository = QuestionnaireRepository();
+  final homeScreenModel = HomeScreenModel();
+  final exerciseService = ExerciseService(authService: authService);
   runApp(
-    FutureBuilder(
-      future: _initializeApp(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return MultiProvider(
-            providers: [
-              ChangeNotifierProvider(create: (_) => AuthService()),
-              ChangeNotifierProvider(create: (_) => HomeScreenModel()),
-              Provider(create: (_) => QuestionnaireRepository()),
-              ProxyProvider<AuthService, HistoryRepository>(
-                update: (_, authService, __) => HistoryRepository(authService),
-              ),
-              ChangeNotifierProvider(
-                create: (context) {
-                  debugPrint("Создание HistoryModel...");
-                  final repo = Provider.of<HistoryRepository>(
-                    context,
-                    listen: false,
-                  );
-                  final model = HistoryModel(repo);
-                  model.loadHistory();
-                  return model;
-                },
-              ),
-              ProxyProvider2<
-                AuthService,
-                HistoryRepository,
-                TrainingCalendarModel
-              >(
-                update:
-                    (_, authService, historyRepo, __) =>
-                        TrainingCalendarModel(authService, historyRepo),
-              ),
-            ],
-            child: MyApp(),
-          );
-        }
-        return MaterialApp(
-          home: Scaffold(body: Center(child: CircularProgressIndicator())),
-        ); // nenen94D
-      },
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthService>.value(value: authService),
+        ChangeNotifierProvider<HistoryModel>.value(value: historyModel),
+        ChangeNotifierProvider<TrainingCalendarModel>.value(
+          value: trainingCalendarModel,
+        ),
+        Provider<QuestionnaireRepository>.value(value: questionnaireRepository),
+        ChangeNotifierProvider.value(value: homeScreenModel),
+        ChangeNotifierProvider<ExerciseListModel>(
+          create: (_) => ExerciseListModel(exerciseService: exerciseService),
+        ),
+      ],
+      child: MyApp(),
     ),
   );
 }
@@ -83,23 +65,33 @@ Future<void> _initializeApp() async {
   Hive.registerAdapter(TrainingAdapter());
   Hive.registerAdapter(ExerciseAdapter());
   Hive.registerAdapter(TimeOfDayAdapter());
-
   await Hive.openBox<TrainingSchedule>('training_schedule');
 
-  // Инициализация репозиториев и загрузка данных
-  final authService = AuthService();
-  await authService.initialize();
   await SoundService.init(); // Инициализация звукового сервиса
 }
 
 // Корневой виджет приложения
 class MyApp extends StatelessWidget {
-  final RecoveryData? recoveryData;
-
-  const MyApp({this.recoveryData});
-
   @override
   Widget build(BuildContext context) {
+    // Инициализация TrainingCalendarModel с зависимостями
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final historyModel = Provider.of<HistoryModel>(context, listen: false);
+    final trainingCalendarModel = Provider.of<TrainingCalendarModel>(
+      context,
+      listen: false,
+    );
+    final exerciseListModel = Provider.of<ExerciseListModel>(
+      context,
+      listen: false,
+    );
+    authService.initialize();
+    trainingCalendarModel.initialize(
+      authService,
+      historyModel,
+      exerciseListModel,
+    );
+
     return MaterialApp(
       title: 'Recovery App',
       theme: ThemeData(primarySwatch: Colors.blue),
@@ -118,7 +110,6 @@ class MyApp extends StatelessWidget {
         '/home':
             (context) => HomeScreen(
               recoveryData:
-                  recoveryData ??
                   ModalRoute.of(context)!.settings.arguments as RecoveryData,
             ),
         '/questionnaire':

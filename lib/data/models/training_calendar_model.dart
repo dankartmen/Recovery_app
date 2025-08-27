@@ -1,30 +1,37 @@
+import 'package:auth_test/data/models/exercise_list_model.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../services/auth_service.dart';
 import '../../services/exercise_service.dart';
-import '../repositories/history_repository.dart';
 import 'exercise_history.dart';
+import 'history_model.dart';
 import 'models.dart';
 import 'training.dart';
 import 'training_schedule.dart';
 
 class TrainingCalendarModel extends ChangeNotifier {
-  final AuthService authService;
-  final HistoryRepository _historyRepository;
-  List<ExerciseHistory> _history = [];
+  AuthService? _authService;
+  HistoryModel? _historyModel;
+  ExerciseListModel? _exerciseListModel;
 
-  TrainingCalendarModel(this.authService, this._historyRepository) {
-    _loadHistory();
-  }
+  List<ExerciseHistory> get history => _historyModel?.history ?? [];
 
-  Future<void> _loadHistory() async {
-    _history = await _historyRepository.getAllHistory();
-    notifyListeners();
+  TrainingCalendarModel(); // Конструктор без параметров
+
+  // Метод для установки зависимостей
+  void initialize(
+    AuthService authService,
+    HistoryModel historyModel,
+    ExerciseListModel? exerciseListModel,
+  ) {
+    _authService = authService;
+    _historyModel = historyModel;
+    _exerciseListModel = exerciseListModel;
   }
 
   bool isTrainingCompleted(Training training) {
-    return _history.any(
+    return history.any(
       (h) =>
           h.exerciseName == training.title &&
           isSameDay(h.dateTime, training.date),
@@ -32,8 +39,8 @@ class TrainingCalendarModel extends ChangeNotifier {
   }
 
   void refreshTrainingStatus() {
-    _loadHistory();
-    notifyListeners(); // Уведомляем о необходимости перерисовки
+    _historyModel?.refreshHistory(_historyModel!.repository);
+    notifyListeners();
   }
 
   void refresh() {
@@ -42,10 +49,21 @@ class TrainingCalendarModel extends ChangeNotifier {
 
   Future<void> generateAndSaveSchedule(RecoveryData data) async {
     try {
-      final exerciseService = ExerciseService(authService: authService);
-      final exercises = await exerciseService.getExercises(
-        injuryType: data.specificInjury,
-      );
+      if (_authService == null || _exerciseListModel == null) {
+        debugPrint(
+          "При генерации расписания authService или exerciseListModel = null",
+        );
+        return;
+      }
+
+      // Загружаем упражнения, если их нет
+      if (_exerciseListModel!.exercises.isEmpty) {
+        await _exerciseListModel!.loadExercises(
+          injuryType: data.specificInjury,
+        );
+      }
+
+      final exercises = _exerciseListModel!.exercises;
 
       final scheduleBox = await Hive.openBox<TrainingSchedule>(
         'training_schedule',

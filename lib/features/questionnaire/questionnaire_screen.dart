@@ -308,7 +308,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                       Expanded(
                         child: Slider(
                           value: _painLevel.toDouble(),
-                          min: 1,
+                          min: 0,
                           max: 10,
                           divisions: 9,
                           label: _painLevel.toString(),

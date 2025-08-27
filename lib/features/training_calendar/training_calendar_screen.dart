@@ -1,3 +1,4 @@
+import 'package:auth_test/data/models/exercise_list_model.dart';
 import 'package:flutter/material.dart';
 
 import 'package:hive/hive.dart';
@@ -7,6 +8,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/models/exercise_history.dart';
+import '../../data/models/history_model.dart';
 import '../../data/models/home_screen_model.dart';
 import '../../data/models/models.dart';
 import '../../data/models/training.dart';
@@ -37,31 +39,30 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
   List<Exercise> _exercises = [];
   List<ExerciseHistory> _exerciseHistory = [];
   late HistoryRepository _historyRepo;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Слушаем изменения в модели
-    Provider.of<TrainingCalendarModel>(context, listen: true).addListener(() {
-      setState(() {}); // Принудительное обновление
-    });
-  }
+  bool _isHistoryLoaded = false;
 
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('ru_RU', null);
     _initHive();
-    _historyRepo = HistoryRepository(
-      Provider.of<AuthService>(context, listen: false),
-    );
-    _loadExerciseHistory();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isHistoryLoaded) {
+      _loadExerciseHistory();
+      _isHistoryLoaded = true;
+    }
   }
 
   Future<void> _loadExerciseHistory() async {
     try {
-      final history = await _historyRepo.getAllHistory();
-      setState(() => _exerciseHistory = history);
+      debugPrint("Загружаю историю в trainingCalendarScreenState");
+      final historyModel = Provider.of<HistoryModel>(context);
+      final historyList = historyModel.history;
+      setState(() => _exerciseHistory = historyList);
     } catch (e) {
       debugPrint('Ошибка загрузки истории: $e');
     }
@@ -91,14 +92,12 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
       // При критической ошибке сбрасываем хранилище
       await _scheduleBox.deleteFromDisk();
       _scheduleBox = await Hive.openBox<TrainingSchedule>('training_schedule');
-      _loadExercises();
     }
   }
 
   Future<void> _loadSchedule() async {
     try {
       final savedSchedule = _scheduleBox.get('schedule');
-      await _loadExercises();
       if (savedSchedule != null) {
         setState(() {
           _schedule = savedSchedule;
@@ -107,27 +106,6 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
       }
     } catch (e) {
       debugPrint('Ошибка загрузки расписания: $e');
-    }
-  }
-
-  Future<void> _loadExercises() async {
-    try {
-      final exerciseService = ExerciseService(
-        authService: Provider.of<AuthService>(context, listen: false),
-      );
-      final exercises = await exerciseService.getExercises(
-        injuryType: widget.recoveryData.specificInjury,
-      );
-
-      setState(() {
-        _exercises = exercises;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
     }
   }
 
@@ -163,7 +141,7 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final calendarModel = Provider.of<TrainingCalendarModel>(context);
+    final calendarModel = context.watch<TrainingCalendarModel>();
 
     if (_isLoading) {
       return Scaffold(
@@ -260,6 +238,12 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
         _exerciseHistory.isNotEmpty
             ? _exerciseHistory.first.dateTime
             : DateTime.now().subtract(const Duration(days: 30));
+
+    final exerciseListModel = Provider.of<ExerciseListModel>(
+      context,
+      listen: false,
+    );
+    _exercises = exerciseListModel.exercises;
 
     return Scaffold(
       appBar: AppBar(

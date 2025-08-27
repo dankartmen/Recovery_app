@@ -1,12 +1,16 @@
 import 'dart:convert';
+import 'package:auth_test/data/models/exercise_list_model.dart';
 import 'package:auth_test/data/models/models.dart';
 import 'package:auth_test/data/repositories/questionnaire_repository.dart';
 import 'package:auth_test/data/models/user_model.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/models/history_model.dart';
 import '../data/models/training_calendar_model.dart';
 import '../data/models/training_schedule.dart';
 import '../data/repositories/history_repository.dart';
@@ -30,7 +34,7 @@ class AuthService with ChangeNotifier {
     if (_isInitialized) return; // Защита от повторной инициализации
     _isInitialized = true;
 
-    setState(() => _isLoading = true);
+    setLoading(true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -47,7 +51,7 @@ class AuthService with ChangeNotifier {
     } catch (e) {
       debugPrint('Ошибка инициализации сессии: $e');
     } finally {
-      setState(() => _isLoading = false);
+      setLoading(false);
       notifyListeners(); // Уведомляем слушателей о завершении инициализации
     }
   }
@@ -101,8 +105,12 @@ class AuthService with ChangeNotifier {
     return 'Basic $credentials';
   }
 
-  Future<User?> register(String username, String password) async {
-    setState(() => _isLoading = true);
+  Future<User?> register(
+    String username,
+    String password,
+    BuildContext context,
+  ) async {
+    setLoading(true);
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/register'),
@@ -112,31 +120,37 @@ class AuthService with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final user = await login(username, password);
-
-        // После успешной регистрации и входа
         if (user != null) {
           final questionnaire = await fetchQuestionnaire();
           if (questionnaire != null) {
-            final calendarModel = TrainingCalendarModel(
-              this,
-              HistoryRepository(this),
+            final calendarModel = Provider.of<TrainingCalendarModel>(
+              context,
+              listen: false,
             );
+            final historyModel = Provider.of<HistoryModel>(
+              context,
+              listen: false,
+            );
+            final exerciseListModel = Provider.of<ExerciseListModel>(
+              context,
+              listen: false,
+            );
+            calendarModel.initialize(this, historyModel, exerciseListModel);
             await calendarModel.generateAndSaveSchedule(questionnaire);
           }
         }
-
         return user;
       }
     } catch (e) {
-      setState(() => _errorMessage = e.toString());
+      setError(e.toString());
       rethrow;
     } finally {
-      setState(() => _isLoading = false);
+      setLoading(false);
     }
   }
 
   Future<User?> login(String username, String password) async {
-    setState(() => _isLoading = true);
+    setLoading(true);
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/login'),
@@ -166,16 +180,15 @@ class AuthService with ChangeNotifier {
         throw Exception('Ошибка сервера: ${response.statusCode}');
       }
     } catch (e) {
-      setState(() => _errorMessage = e.toString());
+      setError(e.toString());
       rethrow; // Проброс исключения для обработки в UI
     } finally {
-      setState(() => _isLoading = false);
-      notifyListeners();
+      setLoading(false);
     }
   }
 
   Future<void> resetPassword(String username, String newPassword) async {
-    setState(() => _isLoading = true);
+    setLoading(true);
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/reset-password'),
@@ -189,7 +202,7 @@ class AuthService with ChangeNotifier {
         throw Exception('Ошибка сброса пароля: ${response.statusCode}');
       }
     } finally {
-      setState(() => _isLoading = false);
+      setLoading(false);
     }
   }
 
@@ -205,11 +218,6 @@ class AuthService with ChangeNotifier {
       'training_schedule',
     );
     await scheduleBox.clear();
-  }
-
-  void setState(VoidCallback fn) {
-    fn();
-    notifyListeners();
   }
 
   Future<RecoveryData?> fetchQuestionnaire() async {
@@ -248,16 +256,13 @@ class AuthService with ChangeNotifier {
 
   void setLoading(bool value) {
     _isLoading = value;
-    notifyListeners();
   }
 
   void setError(String message) {
     _errorMessage = message;
-    notifyListeners();
   }
 
   void clearError() {
     _errorMessage = null;
-    notifyListeners();
   }
 }

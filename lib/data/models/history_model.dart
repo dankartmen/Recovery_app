@@ -22,6 +22,7 @@ class HistoryModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint("Загружаю историю в history_model");
       _history = await repository.getAllHistory();
     } catch (e) {
       debugPrint("Ошибка загрузки истории: $e");
@@ -42,6 +43,7 @@ class HistoryModel extends ChangeNotifier {
   }
 
   Future<void> refreshHistory(HistoryRepository repository) async {
+    debugPrint("Обновляю историю в history_model");
     final history = await repository.getAllHistory();
     setHistory(history);
   }
