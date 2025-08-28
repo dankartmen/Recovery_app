@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../services/auth_service.dart';
-import '../../services/exercise_service.dart';
 import 'exercise_history.dart';
 import 'history_model.dart';
 import 'models.dart';

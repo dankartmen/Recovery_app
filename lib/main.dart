@@ -32,6 +32,8 @@ void main() async {
   await _initializeApp();
 
   final authService = AuthService();
+  await authService.initialize();
+
   final historyModel = HistoryModel(HistoryRepository(authService));
   final trainingCalendarModel = TrainingCalendarModel();
   final questionnaireRepository = QuestionnaireRepository();
@@ -74,7 +76,6 @@ Future<void> _initializeApp() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Инициализация TrainingCalendarModel с зависимостями
     final authService = Provider.of<AuthService>(context, listen: false);
     final historyModel = Provider.of<HistoryModel>(context, listen: false);
     final trainingCalendarModel = Provider.of<TrainingCalendarModel>(
@@ -85,7 +86,6 @@ class MyApp extends StatelessWidget {
       context,
       listen: false,
     );
-    authService.initialize();
     trainingCalendarModel.initialize(
       authService,
       historyModel,

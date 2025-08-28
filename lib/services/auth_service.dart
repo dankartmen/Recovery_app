@@ -71,10 +71,13 @@ class AuthService with ChangeNotifier {
       if (response.statusCode == 200) {
         _currentUser = User.fromJson(jsonDecode(response.body));
         debugPrint('Автоматический вход успешен');
+        await _saveSession();
+        notifyListeners(); // Только уведомляем слушателей!
       }
     } catch (e) {
       debugPrint('Ошибка автоматического входа: $e');
       await _clearSession();
+      notifyListeners();
     }
   }
 

@@ -51,11 +51,15 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  void _onAuthChanged() {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    if (authService.currentUser != null && !_autoLoginAttempted) {
-      setState(() => _autoLoginAttempted = true);
-      _navigateAfterLogin(authService);
+  void _onAuthChanged() async {
+    if (_authService!.currentUser != null && !_autoLoginAttempted) {
+      _autoLoginAttempted = true;
+      final questionnaire = await _authService!.fetchQuestionnaire();
+      if (questionnaire != null) {
+        Navigator.pushReplacementNamed(context, '/home', arguments: questionnaire);
+      } else {
+        Navigator.pushReplacementNamed(context, '/questionnaire');
+      }
     }
   }
 
