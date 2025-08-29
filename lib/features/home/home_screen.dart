@@ -38,9 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initializeApp() async {
     final stopwatch = Stopwatch()..start();
     try {
+      _homeModel = Provider.of<HomeScreenModel>(context, listen: false);
       await _loadTrainingSchedule();
       await _loadLatestData();
-      _homeModel = Provider.of<HomeScreenModel>(context, listen: false);
       _currentRecoveryData = widget.recoveryData;
       _initializeScreens();
       final historyModel = Provider.of<HistoryModel>(context, listen: false);

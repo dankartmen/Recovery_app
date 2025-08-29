@@ -92,10 +92,29 @@ class MyApp extends StatelessWidget {
       exerciseListModel,
     );
 
+    Widget startScreen;
+    if (authService.isLoading) {
+      startScreen = Scaffold(body: Center(child: CircularProgressIndicator()));
+    } else if (authService.currentUser != null) {
+      // Если пользователь авторизован, сразу переходим на HomeScreen
+      startScreen = FutureBuilder<RecoveryData?>(
+        future: authService.fetchQuestionnaire(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          return HomeScreen(recoveryData: snapshot.data!);
+        },
+      );
+    } else {
+      // Если не авторизован — экран входа
+      startScreen = LoginScreen();
+    }
+
     return MaterialApp(
       title: 'Recovery App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: '/auth',
+      home: startScreen,
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

@@ -19,7 +19,6 @@ class ExercisesScreen extends StatefulWidget {
 }
 
 class _ExercisesScreenState extends State<ExercisesScreen> {
-  List<Exercise> _exercises = [];
   bool _isLoading = false;
   String? _error;
   String _searchQuery = '';
@@ -47,18 +46,6 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
         builder: (context) => ExerciseDetailScreen(exercise: exercise),
       ),
     );
-  }
-
-  List<Exercise> get _filteredExercises {
-    if (_searchQuery.isEmpty) return _exercises;
-    return _exercises.where((exercise) {
-      return exercise.title.toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          exercise.generalDescription.toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
-    }).toList();
   }
 
   @override
@@ -104,7 +91,9 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
+    final exerciseListModel = Provider.of<ExerciseListModel>(context);
+
+    if (exerciseListModel.isLoading) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -120,45 +109,25 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
       );
     }
 
-    final exerciseListModel = Provider.of<ExerciseListModel>(
-      context,
-      listen: false,
-    );
-
-    if (exerciseListModel.isLoading) {
-      return Center(
-        child: CircularProgressIndicator(color: healthPrimaryColor),
-      );
-    }
-
     if (exerciseListModel.error != null) {
       return Center(child: Text(exerciseListModel.error!));
     }
 
-    _exercises = exerciseListModel.exercises;
+    final exercises = exerciseListModel.exercises;
 
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 20),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: healthTextColor),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      );
-    }
+    final filteredExercises =
+        _searchQuery.isEmpty
+            ? exercises
+            : exercises.where((exercise) {
+              return exercise.title.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  ) ||
+                  exercise.generalDescription.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  );
+            }).toList();
 
-    if (_filteredExercises.isEmpty) {
+    if (filteredExercises.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -189,7 +158,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: healthSecondaryTextColor),
               ),
-              const SizedBox(height: 20),
+              //const SizedBox(height: 20),
               /*if (_searchQuery.isEmpty)
                 ElevatedButton(
                   onPressed: _loadExercises,
@@ -223,13 +192,13 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
             children: [
               _buildStatCard(
                 'Всего упражнений',
-                _exercises.length.toString(),
+                exercises.length.toString(),
                 healthPrimaryColor,
               ),
               const SizedBox(width: 12),
               _buildStatCard(
                 'Показано',
-                _filteredExercises.length.toString(),
+                filteredExercises.length.toString(),
                 healthSecondaryColor,
               ),
             ],
@@ -240,9 +209,9 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.only(bottom: 20),
-            itemCount: _filteredExercises.length,
+            itemCount: filteredExercises.length,
             itemBuilder: (context, index) {
-              final exercise = _filteredExercises[index];
+              final exercise = filteredExercises[index];
               return ExerciseTile(
                 exercise: exercise,
                 onTap: () => _navigateToDetail(context, exercise),
