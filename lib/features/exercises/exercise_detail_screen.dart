@@ -27,21 +27,18 @@ class ExerciseDetailScreen extends StatefulWidget {
 
 class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   int _remainingSeconds = 0;
-  int _totalDuration = 0;
   Timer? _timer;
   bool _isRunning = false;
   int _completedSets = 0;
   int _painLevel = 0;
   int _totalDurationSeconds = 0;
   bool _isExerciseCompleted = false;
-  bool _isCompleted = false;
   Sound? _selectedSound;
   final AudioPlayer _timerPlayer = AudioPlayer();
   late HistoryRepository _historyRepo;
   final TextEditingController _notesController = TextEditingController();
   double _progress = 0.0;
   int _currentSetDuration = 0;
-  bool _isSetCompleted = false;
 
   @override
   void initState() {
@@ -85,7 +82,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       _currentSetDuration = duration;
       _remainingSeconds = duration;
       _isRunning = true;
-      _isSetCompleted = false;
       _progress = 0.0;
     });
 
@@ -101,7 +97,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         } else {
           timer.cancel();
           _isRunning = false;
-          _isSetCompleted = true;
           _completedSets++;
           _playCompletionSound();
           _completeSet();
@@ -126,7 +121,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       _totalDurationSeconds += _currentSetDuration;
       _isRunning = false;
       _remainingSeconds = 0;
-      _isCompleted = true;
     });
   }
 
@@ -279,7 +273,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       _completedSets = 0;
       _totalDurationSeconds = 0;
       _isExerciseCompleted = false;
-      _isCompleted = false;
       _isRunning = false;
       _remainingSeconds = 0;
     });
@@ -362,6 +355,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 20),
               // Основной контент
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -575,77 +569,84 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
 
                     // Кнопки управления подходами
                     const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        // Кнопка добавления подхода
-                        if (_completedSets == 0 && _remainingSeconds == 0)
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _openTimerPicker,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: healthSecondaryColor,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Начать упражнение',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ),
-                        const SizedBox(width: 16),
 
-                        // Кнопка завершения упражнения
-                        if (_completedSets > 0)
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _openTimerPicker,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: healthSecondaryColor,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              icon: const Icon(Icons.add, color: Colors.white),
-                              label: const Text(
-                                'Добавить подход',
-                                style: TextStyle(color: Colors.white),
+                    // Кнопка добавления подхода
+                    if (_completedSets == 0 && _remainingSeconds == 0)
+                      Center(
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _openTimerPicker,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: healthSecondaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                          ),
-                        const SizedBox(width: 16),
-                        if (_completedSets > 0)
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _completeExercise,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: healthPrimaryColor,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              icon: const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                'Завершить',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                            child: const Text(
+                              'Начать упражнение',
+                              style: TextStyle(color: Colors.white),
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                      )
+                    else
+                      Row(
+                        children: [
+                          // Кнопка завершения упражнения
+                          if (_completedSets > 0 && !_isRunning)
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _openTimerPicker,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: healthSecondaryColor,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'Добавить подход',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 16),
+                          if (_completedSets > 0 && !_isRunning)
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed:
+                                    _isExerciseCompleted
+                                        ? null
+                                        : _completeExercise,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: healthPrimaryColor,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'Завершить',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),

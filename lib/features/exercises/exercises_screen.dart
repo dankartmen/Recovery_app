@@ -2,11 +2,9 @@ import 'package:auth_test/data/models/exercise_list_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/models.dart';
-import '../../services/auth_service.dart';
 import '../../styles/style.dart';
 import 'exercise_detail_screen.dart';
 import 'exercise_tile.dart';
-import '../../services/exercise_service.dart';
 
 class ExercisesScreen extends StatefulWidget {
   final RecoveryData recoveryData;
