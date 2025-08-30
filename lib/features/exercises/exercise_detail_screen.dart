@@ -43,22 +43,22 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSoundSettings();
-    _timerPlayer.setReleaseMode(ReleaseMode.stop);
+    _loadSoundSettings(); // Загружаем настройки звука пользователя
+    _timerPlayer.setReleaseMode(ReleaseMode.stop); // Останавливаем звук после проигрывания
     final authService = Provider.of<AuthService>(context, listen: false);
-    _historyRepo = HistoryRepository(authService);
+    _historyRepo = HistoryRepository(authService); // Инициализируем репозиторий истории
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _timerPlayer.dispose();
-    SoundService.previewPlayer.stop();
-    _notesController.dispose();
+    _timer?.cancel(); // Останавливаем таймер при выходе
+    _timerPlayer.dispose(); // Освобождаем ресурсы аудиоплеера
+    SoundService.previewPlayer.stop(); // Останавливаем превью мелодии
+    _notesController.dispose(); // Освобождаем контроллер заметок
     super.dispose();
   }
 
-  // Загружаем доступные мелодии
+  // Загружаем выбранную пользователем мелодию для таймера
   Future<void> _loadSoundSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final soundPath = prefs.getString('selectedSound');
@@ -75,7 +75,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
-  // Счётчик таймера
+  // Запуск таймера для подхода
   void _startSet(int duration) {
     _timer?.cancel();
     setState(() {
@@ -85,6 +85,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       _progress = 0.0;
     });
 
+    // Основной таймер подхода
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -98,8 +99,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           timer.cancel();
           _isRunning = false;
           _completedSets++;
-          _playCompletionSound();
-          _completeSet();
+          _playCompletionSound(); // Воспроизводим звук окончания подхода
+          _completeSet(); // Обновляем состояние после завершения подхода
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Подход $_completedSets завершен!'),
@@ -116,6 +117,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     });
   }
 
+  // Обработка завершения одного подхода
   void _completeSet() {
     setState(() {
       _totalDurationSeconds += _currentSetDuration;
@@ -124,7 +126,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     });
   }
 
+  // Завершение всего упражнения и сохранение результата
   void _completeExercise() async {
+    // Диалог для ввода заметок и оценки боли
     final notes = await showDialog<String>(
       context: context,
       builder: (context) {
@@ -140,6 +144,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Поле для заметок
                     TextField(
                       controller: _notesController,
                       decoration: InputDecoration(
@@ -155,6 +160,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                       autofocus: true,
                     ),
                     const SizedBox(height: 20),
+                    // Оценка болевых ощущений
                     Text(
                       "Оцените болевые ощущения:",
                       style: TextStyle(
@@ -183,6 +189,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                         ),
                       ),
                     ),
+                    // Предупреждение при высокой боли
                     if (localPainLevel >= 4)
                       Container(
                         margin: const EdgeInsets.only(top: 16),
@@ -204,6 +211,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 ),
               ),
               actions: [
+                // Кнопка пропуска сохранения заметки
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
@@ -211,6 +219,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     style: TextStyle(color: healthSecondaryTextColor),
                   ),
                 ),
+                // Кнопка сохранения результата
                 ElevatedButton(
                   onPressed: () {
                     setState(() => _painLevel = localPainLevel);
@@ -234,6 +243,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       },
     );
 
+    // Формируем объект истории упражнения
     final newHistory = ExerciseHistory(
       exerciseName: widget.exercise.title,
       dateTime: DateTime.now(),
@@ -243,6 +253,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       painLevel: _painLevel,
     );
 
+    // Сохраняем историю в репозиторий и обновляем модели
     final result = await _historyRepo.addHistory(newHistory);
     if (result > 0) {
       Provider.of<HistoryModel>(
@@ -268,6 +279,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     _resetExercise();
   }
 
+  // Сброс состояния после завершения упражнения
   void _resetExercise() {
     setState(() {
       _completedSets = 0;
@@ -278,6 +290,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     });
   }
 
+  // Воспроизведение выбранного звука при завершении подхода
   void _playCompletionSound() async {
     if (_selectedSound != null) {
       try {
@@ -290,12 +303,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
+  // Форматирование времени для таймера
   String _formatTime(int seconds) {
     int minutes = (seconds / 60).floor();
     int remainingSeconds = seconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
+  // Открытие экрана выбора времени для подхода
   Future<void> _openTimerPicker() async {
     final selectedTime = await Navigator.push<int>(
       context,
@@ -310,6 +325,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
+  // Открытие диалога выбора мелодии
   Future<void> _selectSound() async {
     final sound = await Navigator.push<Sound?>(
       context,
@@ -356,13 +372,13 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              // Основной контент
+              // Основной контент упражнения
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Общее описание
+                    // Общее описание упражнения
                     Text(
                       widget.exercise.generalDescription,
                       style: const TextStyle(
@@ -373,7 +389,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Специфическая информация
+                    // Специфическая информация для типа травмы
                     if (widget.exercise.injurySpecificInfo.isNotEmpty)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,7 +421,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                         ],
                       ),
 
-                    // Шаги выполнения
+                    // Шаги выполнения упражнения
                     Text(
                       'Шаги выполнения:',
                       style: TextStyle(
@@ -450,7 +466,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Изображение
+                    // Изображение упражнения, если есть
                     if (widget.exercise.imageUrl != null)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
@@ -465,7 +481,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                   ],
                 ),
               ),
-              // Панель управления подходами
+              // Панель управления подходами и таймером
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -483,7 +499,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Отображение количества подходов
+                    // Отображение количества завершённых подходов
                     Text(
                       'Подходы: $_completedSets',
                       style: const TextStyle(
@@ -494,7 +510,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Таймер
+                    // Таймер подхода
                     Text(
                       _formatTime(_remainingSeconds),
                       style: TextStyle(
@@ -508,7 +524,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Индикатор прогресса
+                    // Индикатор прогресса подхода
                     LinearProgressIndicator(
                       value: _progress,
                       minHeight: 10,
@@ -518,11 +534,12 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Управление таймером
+                    // Кнопки управления таймером (старт/пауза/стоп)
                     if (_isRunning || _remainingSeconds > 0)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          // Кнопка паузы/старта таймера
                           ElevatedButton(
                             onPressed: () {
                               if (_isRunning) {
@@ -544,6 +561,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                             ),
                           ),
                           const SizedBox(width: 20),
+                          // Кнопка остановки таймера
                           ElevatedButton(
                             onPressed: () {
                               _timer?.cancel();
@@ -570,7 +588,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     // Кнопки управления подходами
                     const SizedBox(height: 20),
 
-                    // Кнопка добавления подхода
+                    // Кнопка начала упражнения (отображается только до первого подхода)
                     if (_completedSets == 0 && _remainingSeconds == 0)
                       Center(
                         child: SizedBox(
