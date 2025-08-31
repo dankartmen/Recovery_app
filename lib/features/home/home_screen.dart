@@ -125,11 +125,11 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         selectedLabelStyle: TextStyle(
-          fontWeight: FontWeight.bold,
-        ), // более жирный шрифт на выбранной метке
+          fontWeight: FontWeight.bold, // более жирный шрифт на выбранной метке
+        ),
         unselectedLabelStyle: TextStyle(
-          color: Colors.grey,
-        ), // серый шрифт на не выбранной метке
+          color: Colors.grey, // серый шрифт на не выбранной метке
+        ),
         type: BottomNavigationBarType.fixed,
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [

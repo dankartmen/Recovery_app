@@ -31,14 +31,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeApp();
 
+  // Создание и инициализация сервисов и моделей
   final authService = AuthService();
-  await authService.initialize();
+  await authService.initialize(); // Асинхронная авторизация пользователя
 
   final historyModel = HistoryModel(HistoryRepository(authService));
   final trainingCalendarModel = TrainingCalendarModel();
   final questionnaireRepository = QuestionnaireRepository();
   final homeScreenModel = HomeScreenModel();
   final exerciseService = ExerciseService(authService: authService);
+
+  // Запуск приложения с MultiProvider для управления состоянием
   runApp(
     MultiProvider(
       providers: [
@@ -58,11 +61,11 @@ void main() async {
   );
 }
 
+// Инициализация Hive и сервисов
 Future<void> _initializeApp() async {
-  // Инициализация Hive
   await Hive.initFlutter();
 
-  // Регистрация адаптеров
+  // Регистрация адаптеров для хранения моделей в Hive
   Hive.registerAdapter(TrainingScheduleAdapter());
   Hive.registerAdapter(TrainingAdapter());
   Hive.registerAdapter(ExerciseAdapter());
@@ -76,6 +79,7 @@ Future<void> _initializeApp() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    // Получение экземпляров моделей из Provider
     final authService = Provider.of<AuthService>(context, listen: false);
     final historyModel = Provider.of<HistoryModel>(context, listen: false);
     final trainingCalendarModel = Provider.of<TrainingCalendarModel>(
@@ -86,14 +90,18 @@ class MyApp extends StatelessWidget {
       context,
       listen: false,
     );
+
+    // Инициализация TrainingCalendarModel с зависимостями
     trainingCalendarModel.initialize(
       authService,
       historyModel,
       exerciseListModel,
     );
 
+    // Определение стартового экрана в зависимости от состояния авторизации
     Widget startScreen;
     if (authService.isLoading) {
+      // Показываем индикатор загрузки, пока идет авторизация
       startScreen = Scaffold(body: Center(child: CircularProgressIndicator()));
     } else if (authService.currentUser != null) {
       // Если пользователь авторизован, сразу переходим на HomeScreen
@@ -114,25 +122,23 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Recovery App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: startScreen,
+      home: startScreen, // Динамический стартовый экран
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: [
-        const Locale('ru', 'RU'), // Русская локальлизация
+        const Locale('ru', 'RU'), // Русская локализация
       ],
       routes: {
         // Конфигурация маршрутов приложения
         '/auth': (context) => LoginScreen(),
-        '/home':
-            (context) => HomeScreen(
+        '/home': (context) => HomeScreen(
               recoveryData:
                   ModalRoute.of(context)!.settings.arguments as RecoveryData,
             ),
-        '/questionnaire':
-            (context) => QuestionnaireScreen(
+        '/questionnaire': (context) => QuestionnaireScreen(
               initialData:
                   ModalRoute.of(context)?.settings.arguments as RecoveryData?,
             ),
@@ -147,11 +153,10 @@ class MyApp extends StatelessWidget {
           return HistoryScreen(
             recoveryData: args,
             schedule:
-                Provider.of<HomeScreenModel>(context).schedule, // Добавлено
+                Provider.of<HomeScreenModel>(context).schedule, // Передача расписания
           );
         },
-        '/profile':
-            (context) => ProfileScreen(
+        '/profile': (context) => ProfileScreen(
               recoveryData:
                   ModalRoute.of(context)!.settings.arguments as RecoveryData,
             ),
@@ -170,20 +175,19 @@ class MyApp extends StatelessWidget {
           return TrainingCalendarScreen(recoveryData: args);
         },
       },
-      onUnknownRoute:
-          (settings) => MaterialPageRoute(
-            builder:
-                (context) =>
-                    Scaffold(body: Center(child: Text('Страница не найдена'))),
-          ),
+      // Обработка неизвестных маршрутов
+      onUnknownRoute: (settings) => MaterialPageRoute(
+        builder: (context) =>
+            Scaffold(body: Center(child: Text('Страница не найдена'))),
+      ),
+      // Генерация маршрутов для передачи аргументов
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/home':
             return MaterialPageRoute(
-              builder:
-                  (context) => HomeScreen(
-                    recoveryData: settings.arguments as RecoveryData,
-                  ),
+              builder: (context) => HomeScreen(
+                recoveryData: settings.arguments as RecoveryData,
+              ),
             );
         }
         return null;
