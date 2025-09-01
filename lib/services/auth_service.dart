@@ -1,16 +1,12 @@
 import 'dart:convert';
-import 'package:auth_test/data/models/exercise_list_model.dart';
 import 'package:auth_test/data/models/models.dart';
 import 'package:auth_test/data/repositories/questionnaire_repository.dart';
 import 'package:auth_test/data/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/models/history_model.dart';
-import '../data/models/training_calendar_model.dart';
 import '../data/models/training_schedule.dart';
 
 class AuthService with ChangeNotifier {
@@ -116,11 +112,7 @@ class AuthService with ChangeNotifier {
   }
 
   // Регистрация нового пользователя
-  Future<User?> register(
-    String username,
-    String password,
-    BuildContext context,
-  ) async {
+  Future<User?> register(String username, String password) async {
     setLoading(true);
     try {
       final response = await http.post(
@@ -131,26 +123,6 @@ class AuthService with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final user = await login(username, password);
-        if (user != null) {
-          final questionnaire = await fetchQuestionnaire();
-          if (questionnaire != null) {
-            // Инициализация календаря тренировок после регистрации
-            final calendarModel = Provider.of<TrainingCalendarModel>(
-              context,
-              listen: false,
-            );
-            final historyModel = Provider.of<HistoryModel>(
-              context,
-              listen: false,
-            );
-            final exerciseListModel = Provider.of<ExerciseListModel>(
-              context,
-              listen: false,
-            );
-            calendarModel.initialize(this, historyModel, exerciseListModel);
-            await calendarModel.generateAndSaveSchedule(questionnaire);
-          }
-        }
         return user;
       }
     } catch (e) {

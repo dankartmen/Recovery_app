@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../data/models/exercise_list_model.dart';
+import '../../data/models/history_model.dart';
+import '../../data/models/training_calendar_model.dart';
 import '../../services/auth_service.dart';
 import '../../styles/style.dart';
 
@@ -197,9 +200,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               height: 50,
                               child: ElevatedButton(
                                 onPressed:
-                                    _isLoading
-                                        ? null
-                                        : () => _register(authService),
+                                    _isLoading ? null : () => _register(),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: healthPrimaryColor,
                                   shape: RoundedRectangleBorder(
@@ -263,19 +264,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Future<void> _register(AuthService authService) async {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      await authService.register(
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final user = await authService.register(
         _usernameController.text,
         _passwordController.text,
-        context,
       );
-      // После успешной регистрации закрываем экран
-      if (mounted) Navigator.pop(context);
+
+      if (user != null) {
+        // Загружаем анкету пользователя
+        final questionnaire = await authService.fetchQuestionnaire();
+
+        if (questionnaire != null) {
+          // Инициализируем календарь тренировок
+          final calendarModel = Provider.of<TrainingCalendarModel>(
+            context,
+            listen: false,
+          );
+          final historyModel = Provider.of<HistoryModel>(
+            context,
+            listen: false,
+          );
+          final exerciseListModel = Provider.of<ExerciseListModel>(
+            context,
+            listen: false,
+          );
+
+          calendarModel.initialize(
+            authService,
+            historyModel,
+            exerciseListModel,
+          );
+          await calendarModel.generateAndSaveSchedule(questionnaire);
+        }
+
+        // После успешной регистрации можно перейти на нужный экран
+        if (mounted) {
+          Navigator.pushReplacementNamed(
+            context,
+            '/home',
+            arguments: questionnaire,
+          );
+        }
+      }
+    } catch (e) {
+      // Обработка ошибок
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка регистрации: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
