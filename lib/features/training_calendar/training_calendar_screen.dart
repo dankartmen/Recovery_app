@@ -14,15 +14,18 @@ import '../../data/models/models.dart';
 import '../../data/models/training.dart';
 import '../../data/models/training_calendar_model.dart';
 import '../../data/models/training_schedule.dart';
-import '../../data/repositories/history_repository.dart';
-import '../../services/auth_service.dart';
-import '../../services/exercise_service.dart';
 import '../../styles/style.dart';
 import 'day_schedule_bottom_sheet.dart';
 
+/// {@template training_calendar_screen}
+/// Экран календаря тренировок для просмотра и управления расписанием занятий.
+/// Отображает календарь с отметками о запланированных и выполненных тренировках.
+/// {@endtemplate}
 class TrainingCalendarScreen extends StatefulWidget {
+  /// Данные о восстановлении для инициализации календаря
   final RecoveryData recoveryData;
 
+  /// {@macro training_calendar_screen}
   const TrainingCalendarScreen({required this.recoveryData});
 
   @override
@@ -30,20 +33,37 @@ class TrainingCalendarScreen extends StatefulWidget {
 }
 
 class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
+  /// Hive box для хранения расписания тренировок
   late Box<TrainingSchedule> _scheduleBox;
+
+  /// Текущее расписание тренировок
   TrainingSchedule _schedule = TrainingSchedule(trainings: {}, injuryType: '');
+
+  /// Текущий сфокусированный день в календаре
   DateTime _focusedDay = DateTime.now();
+
+  /// Выбранный день в календаре
   DateTime? _selectedDay;
+
+  /// Флаг загрузки данных
   bool _isLoading = true;
+
+  /// Сообщение об ошибке при загрузке
   String? _error;
+
+  /// Список доступных упражнений
   List<Exercise> _exercises = [];
+
+  /// История выполненных упражнений
   List<ExerciseHistory> _exerciseHistory = [];
-  late HistoryRepository _historyRepo;
+
+  /// Флаг загрузки истории тренировок
   bool _isHistoryLoaded = false;
 
   @override
   void initState() {
     super.initState();
+    // Инициализация локализации для форматирования дат
     initializeDateFormatting('ru_RU', null);
     _initHive();
   }
@@ -51,12 +71,14 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Загрузка истории тренировок при первом изменении зависимостей
     if (!_isHistoryLoaded) {
       _loadExerciseHistory();
       _isHistoryLoaded = true;
     }
   }
 
+  /// Загрузка истории выполненных упражнений
   Future<void> _loadExerciseHistory() async {
     try {
       debugPrint("Загружаю историю в trainingCalendarScreenState");
@@ -68,21 +90,7 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     }
   }
 
-  // Проверка выполнения всех тренировок за день
-  bool _isDayCompleted(DateTime day) {
-    final normalizedDay = DateTime(day.year, day.month, day.day);
-    final trainings = _schedule.trainings[normalizedDay] ?? [];
-
-    if (trainings.isEmpty) return false;
-
-    return trainings.every((training) {
-      return _exerciseHistory.any((history) {
-        return history.exerciseName == training.title &&
-            isSameDay(history.dateTime, training.date);
-      });
-    });
-  }
-
+  /// Инициализация Hive хранилища
   Future<void> _initHive() async {
     try {
       _scheduleBox = await Hive.openBox<TrainingSchedule>('training_schedule');
@@ -95,6 +103,7 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     }
   }
 
+  /// Загрузка расписания тренировок из хранилища
   Future<void> _loadSchedule() async {
     try {
       final savedSchedule = _scheduleBox.get('schedule');
@@ -109,7 +118,9 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     }
   }
 
-  // Новый метод для сохранения
+  /// Сохранение расписания тренировок в хранилище
+  /// Принимает:
+  /// - [schedule] - расписание для сохранения
   void _saveSchedule(TrainingSchedule schedule) {
     setState(() => _schedule = schedule);
     try {
@@ -126,17 +137,6 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     } catch (e) {
       debugPrint('Ошибка сохранения расписания: $e');
     }
-  }
-
-  Widget _buildCalendarMarker(DateTime date) {
-    if (!_schedule.trainings.containsKey(date)) return SizedBox();
-
-    final isCompleted = _isDayCompleted(date);
-    return Icon(
-      isCompleted ? Icons.check_circle : Icons.circle,
-      color: isCompleted ? Colors.green : Colors.blue,
-      size: 16,
-    );
   }
 
   @override
@@ -233,6 +233,7 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
       );
     }
 
+    // Сортировка истории тренировок по дате
     _exerciseHistory.sort((a, b) => a.dateTime.compareTo(b.dateTime));
     final firstDate =
         _exerciseHistory.isNotEmpty
@@ -478,6 +479,11 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     );
   }
 
+  /// Получение цвета для дня в календаре
+  /// Принимает:
+  /// - [day] - день для определения цвета
+  /// Возвращает:
+  /// - цвет текста для указанного дня
   Color _getDayColor(DateTime day) {
     if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
       return Colors.red[300]!;
@@ -485,6 +491,13 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     return healthTextColor;
   }
 
+  /// Построение карточки статистики
+  /// Принимает:
+  /// - [title] - заголовок карточки
+  /// - [value] - значение статистики
+  /// - [color] - цвет акцента карточки
+  /// Возвращает:
+  /// - виджет карточки статистики
   Widget _buildStatCard(String title, String value, Color color) {
     return Expanded(
       child: Container(
@@ -516,6 +529,9 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     );
   }
 
+  /// Показ деталей дня (нижний лист с тренировками)
+  /// Принимает:
+  /// - [day] - день для отображения деталей
   void _showDayDetails(DateTime day) {
     final normalizedDay = DateTime(day.year, day.month, day.day);
 
@@ -545,6 +561,11 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     );
   }
 
+  /// Обновление тренировки
+  /// Принимает:
+  /// - [day] - день тренировки
+  /// - [oldTraining] - старая версия тренировки
+  /// - [newTraining] - новая версия тренировки
   void _updateTraining(
     DateTime day,
     Training oldTraining,
@@ -560,6 +581,10 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     }
   }
 
+  /// Добавление новой тренировки
+  /// Принимает:
+  /// - [day] - день для добавления тренировки
+  /// - [training] - данные тренировки
   void _addTraining(DateTime day, Training training) {
     final List<Training> newTrainings = [
       ..._schedule.trainings[day] ?? [],
@@ -573,6 +598,10 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
     _saveSchedule(_schedule);
   }
 
+  /// Удаление тренировки
+  /// Принимает:
+  /// - [day] - день тренировки
+  /// - [training] - тренировка для удаления
   void _deleteTraining(DateTime day, Training training) {
     final List<Training> newTrainings = [...?_schedule.trainings[day]];
     newTrainings.remove(training);

@@ -5,15 +5,33 @@ import '../../data/models/models.dart';
 import '../../data/models/training.dart';
 import '../../styles/style.dart';
 
+/// {@template day_schedule_bottom_sheet}
+/// Виджет нижнего листа для отображения и управления расписанием тренировок на конкретный день.
+/// Позволяет просматривать, добавлять, редактировать и удалять тренировки.
+/// {@endtemplate}
 class DayScheduleBottomSheet extends StatefulWidget {
+  /// День, для которого отображается расписание
   final DateTime day;
+
+  /// Функция для получения списка тренировок на указанный день
   final List<Training> Function() getTrainingsForDay;
+
+  /// Функция обратного вызова при добавлении новой тренировки
   final Function(Training) onAdd;
+
+  /// Функция обратного вызова при удалении тренировки
   final Function(Training) onDelete;
+
+  /// Отфильтрованный список упражнений для выбора при добавлении тренировки
   final List<Exercise> filteredExercises;
+
+  /// Функция обратного вызова при обновлении тренировки
   final Function(Training, Training) onUpdate;
+
+  /// Функция для проверки завершенности тренировки
   final bool Function(Training) isTrainingCompleted;
 
+  /// {@macro day_schedule_bottom_sheet}
   const DayScheduleBottomSheet({
     Key? key,
     required this.filteredExercises,
@@ -30,20 +48,28 @@ class DayScheduleBottomSheet extends StatefulWidget {
 }
 
 class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
+  /// Локальный список тренировок для отображения
   late List<Training> trainings;
 
   @override
   void initState() {
     super.initState();
+    // Инициализация списка тренировок при создании виджета
     trainings = widget.getTrainingsForDay();
   }
 
+  /// Обновление локального списка тренировок
   void _updateTrainings() {
     setState(() {
       trainings = widget.getTrainingsForDay();
     });
   }
 
+  /// Добавление новой тренировки
+  /// Принимает:
+  /// - [day] - день для добавления тренировки
+  /// - [exercise] - выбранное упражнение
+  /// - [time] - время тренировки
   void _addTraining(DateTime day, Exercise exercise, TimeOfDay time) {
     final newTraining = Training(
       exercise: exercise,
@@ -121,6 +147,12 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
     );
   }
 
+  /// Построение карточки тренировки
+  /// Принимает:
+  /// - [training] - данные тренировки для отображения
+  /// - [isCompleted] - флаг завершенности тренировки
+  /// Возвращает:
+  /// - виджет карточки тренировки
   Widget _buildTrainingCard(Training training, bool isCompleted) {
     return Card(
       elevation: 2,
@@ -179,6 +211,9 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
     );
   }
 
+  /// Построение состояния пустого списка тренировок
+  /// Возвращает:
+  /// - виджет для отображения при отсутствии тренировок
   Widget _buildEmptyState() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24),
@@ -212,6 +247,9 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
     );
   }
 
+  /// Показ диалога добавления новой тренировки
+  /// Принимает:
+  /// - [context] - контекст построения виджета
   void _showAddTrainingDialog(BuildContext context) async {
     final Exercise? selectedExercise = await showDialog<Exercise>(
       context: context,
@@ -256,6 +294,10 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
     _addTraining(widget.day, selectedExercise, selectedTime);
   }
 
+  /// Редактирование времени тренировки
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// - [training] - тренировка для редактирования
   void _editTrainingTime(BuildContext context, Training training) async {
     final TimeOfDay? newTime = await showTimePicker(
       context: context,
