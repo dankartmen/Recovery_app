@@ -277,7 +277,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // После успешной регистрации закрываем экран
       if (mounted) Navigator.pop(context);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }

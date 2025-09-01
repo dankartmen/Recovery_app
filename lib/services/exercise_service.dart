@@ -11,9 +11,10 @@ class ExerciseService {
 
   static const String _baseUrl = 'http://176.114.91.241:8000/exercises';
 
+  // Получение списка упражнений с сервера
   Future<List<Exercise>> getExercises({String? injuryType}) async {
     try {
-      // Явное указание типа Map<String, String>
+      // Формируем параметры запроса
       final Map<String, String> queryParams = {};
       if (injuryType != null) {
         queryParams['injury_type'] = injuryType;

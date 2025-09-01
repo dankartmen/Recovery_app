@@ -3,7 +3,6 @@ import 'package:auth_test/data/models/exercise_list_model.dart';
 import 'package:auth_test/data/models/models.dart';
 import 'package:auth_test/data/repositories/questionnaire_repository.dart';
 import 'package:auth_test/data/models/user_model.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
@@ -13,10 +12,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/history_model.dart';
 import '../data/models/training_calendar_model.dart';
 import '../data/models/training_schedule.dart';
-import '../data/repositories/history_repository.dart';
 
 class AuthService with ChangeNotifier {
+  // Ключ для хранения сессии пользователя в SharedPreferences
   static const String _prefKey = 'user_session';
+
+  // Данные пользователя и состояния авторизации
   String? _username;
   String? _password;
   User? _currentUser;
@@ -25,11 +26,13 @@ class AuthService with ChangeNotifier {
   String? _errorMessage;
   bool _isInitialized = false;
 
+  // Геттеры для доступа к состоянию
   bool get isInitialized => _isInitialized;
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  // Инициализация сервиса и попытка автоматического входа
   Future<void> initialize() async {
     if (_isInitialized) return; // Защита от повторной инициализации
     _isInitialized = true;
@@ -56,6 +59,7 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  // Автоматический вход по сохранённым данным
   Future<void> _silentLogin() async {
     if (_username == null || _password == null) return;
 
@@ -81,6 +85,7 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  // Сохраняем сессию пользователя в SharedPreferences
   Future<void> _saveSession() async {
     if (_username == null || _password == null) return;
 
@@ -91,6 +96,7 @@ class AuthService with ChangeNotifier {
     );
   }
 
+  // Очищаем сессию пользователя
   Future<void> _clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefKey);
@@ -99,6 +105,7 @@ class AuthService with ChangeNotifier {
     _currentUser = null;
   }
 
+  // Формируем заголовок авторизации для запросов
   String getBasicAuthHeader() {
     if (_username == null || _password == null) {
       throw Exception('Пользователь не аутентифицирован');
@@ -108,6 +115,7 @@ class AuthService with ChangeNotifier {
     return 'Basic $credentials';
   }
 
+  // Регистрация нового пользователя
   Future<User?> register(
     String username,
     String password,
@@ -126,6 +134,7 @@ class AuthService with ChangeNotifier {
         if (user != null) {
           final questionnaire = await fetchQuestionnaire();
           if (questionnaire != null) {
+            // Инициализация календаря тренировок после регистрации
             final calendarModel = Provider.of<TrainingCalendarModel>(
               context,
               listen: false,
@@ -150,8 +159,10 @@ class AuthService with ChangeNotifier {
     } finally {
       setLoading(false);
     }
+    return null;
   }
 
+  // Вход пользователя
   Future<User?> login(String username, String password) async {
     setLoading(true);
     try {
@@ -190,6 +201,7 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  // Сброс пароля пользователя
   Future<void> resetPassword(String username, String newPassword) async {
     setLoading(true);
     try {
@@ -209,11 +221,13 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  // Выход пользователя и очистка локальных данных
   Future<void> logout() async {
     await _clearSession();
     _errorMessage = null;
     notifyListeners();
 
+    // Очищаем локальные данные анкеты и расписания
     final questionnaireRepo = QuestionnaireRepository();
     await questionnaireRepo.clearLocalData();
 
@@ -223,6 +237,7 @@ class AuthService with ChangeNotifier {
     await scheduleBox.clear();
   }
 
+  // Получение анкеты пользователя с сервера
   Future<RecoveryData?> fetchQuestionnaire() async {
     if (_currentUser == null || _username == null || _password == null) {
       debugPrint("Ошибка: Пользователь не аутентифицирован");
@@ -257,6 +272,7 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  // Управление состоянием загрузки и ошибок
   void setLoading(bool value) {
     _isLoading = value;
   }

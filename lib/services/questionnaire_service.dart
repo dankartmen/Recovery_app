@@ -1,4 +1,3 @@
-// questionnaire_service.dart
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -6,6 +5,7 @@ import 'package:http/http.dart' as http;
 class QuestionnaireService {
   final String _baseUrl = 'http://176.114.91.241:8000';
 
+  // Сохранение анкеты пользователя на сервере
   Future<http.Response> saveQuestionnaire(
     Map<String, dynamic> data,
     String token,
@@ -21,6 +21,7 @@ class QuestionnaireService {
     );
   }
 
+  // Получение анкеты пользователя с сервера
   Future<Map<String, dynamic>> getQuestionnaire(
     int userId,
     String token,
