@@ -6,7 +6,12 @@ import '../../data/models/training_calendar_model.dart';
 import '../../services/auth_service.dart';
 import '../../styles/style.dart';
 
+/// {@template register_screen}
+/// Экран регистрации нового пользователя.
+/// Предоставляет форму для создания учетной записи с валидацией данных.
+/// {@endtemplate}
 class RegisterScreen extends StatefulWidget {
+  /// {@macro register_screen}
   const RegisterScreen({super.key});
 
   @override
@@ -14,12 +19,25 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  /// Ключ для валидации формы регистрации
   final _formKey = GlobalKey<FormState>();
+
+  /// Контроллер для поля ввода имени пользователя
   final _usernameController = TextEditingController();
+
+  /// Контроллер для поля ввода пароля
   final _passwordController = TextEditingController();
+
+  /// Контроллер для поля подтверждения пароля
   final _confirmPasswordController = TextEditingController();
+
+  /// Флаг состояния загрузки при регистрации
   bool _isLoading = false;
+
+  /// Флаг отображения/скрытия пароля
   bool _obscurePassword = true;
+
+  /// Флаг отображения/скрытия подтверждения пароля
   bool _obscureConfirmPassword = true;
 
   @override
@@ -264,6 +282,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  /// Обработка регистрации пользователя
+  /// Выполняет валидацию формы, отправку данных на сервер и инициализацию данных пользователя
+  /// Выбрасывает исключение:
+  /// - при ошибках сети, сервера или валидации данных
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -279,32 +301,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (user != null) {
         // Загружаем анкету пользователя
         final questionnaire = await authService.fetchQuestionnaire();
-
-        if (questionnaire != null) {
-          // Инициализируем календарь тренировок
-          final calendarModel = Provider.of<TrainingCalendarModel>(
-            context,
-            listen: false,
-          );
-          final historyModel = Provider.of<HistoryModel>(
-            context,
-            listen: false,
-          );
-          final exerciseListModel = Provider.of<ExerciseListModel>(
-            context,
-            listen: false,
-          );
-
-          calendarModel.initialize(
-            authService,
-            historyModel,
-            exerciseListModel,
-          );
-          await calendarModel.generateAndSaveSchedule(questionnaire);
-        }
-
-        // После успешной регистрации можно перейти на нужный экран
         if (mounted) {
+          if (questionnaire != null) {
+            // Инициализируем календарь тренировок
+            final calendarModel = Provider.of<TrainingCalendarModel>(
+              context,
+              listen: false,
+            );
+            final historyModel = Provider.of<HistoryModel>(
+              context,
+              listen: false,
+            );
+            final exerciseListModel = Provider.of<ExerciseListModel>(
+              context,
+              listen: false,
+            );
+
+            calendarModel.initialize(
+              authService,
+              historyModel,
+              exerciseListModel,
+            );
+            await calendarModel.generateAndSaveSchedule(questionnaire);
+          }
+
+          // После успешной регистрации можно перейти на нужный экран
           Navigator.pushReplacementNamed(
             context,
             '/home',

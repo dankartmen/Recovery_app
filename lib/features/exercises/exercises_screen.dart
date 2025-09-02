@@ -6,24 +6,30 @@ import '../../styles/style.dart';
 import 'exercise_detail_screen.dart';
 import 'exercise_tile.dart';
 
+/// {@template exercises_screen}
+/// Экран отображения списка упражнений.
+/// Показывает упражнения, отфильтрованные по данным восстановления пользователя,
+/// с возможностью поиска и навигации к детальной информации.
+/// {@endtemplate}
 class ExercisesScreen extends StatefulWidget {
+  /// Данные восстановления пользователя для фильтрации упражнений
   final RecoveryData recoveryData;
 
+  /// {@macro exercises_screen}
   const ExercisesScreen({Key? key, required this.recoveryData})
     : super(key: key);
-
   @override
   _ExercisesScreenState createState() => _ExercisesScreenState();
 }
 
 class _ExercisesScreenState extends State<ExercisesScreen> {
-  bool _isLoading = false;
-  String? _error;
+  /// Поисковый запрос для фильтрации упражнений
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    // Загрузка упражнений после построения виджета
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final exerciseListModel = Provider.of<ExerciseListModel>(
         context,
@@ -37,6 +43,10 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     });
   }
 
+  /// Навигация к экрану детальной информации об упражнении
+  /// Принимает:
+  /// - [context] - контекст построения виджета
+  /// - [exercise] - упражнение для отображения детальной информации
   void _navigateToDetail(BuildContext context, Exercise exercise) {
     Navigator.push(
       context,
@@ -88,6 +98,9 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     );
   }
 
+  /// Построение основного содержимого экрана
+  /// Возвращает:
+  /// - виджет с состоянием загрузки, ошибки или списком упражнений
   Widget _buildBody() {
     final exerciseListModel = Provider.of<ExerciseListModel>(context);
 
@@ -221,6 +234,13 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     );
   }
 
+  /// Построение карточки статистики
+  /// Принимает:
+  /// - [title] - заголовок статистики
+  /// - [value] - значение статистики
+  /// - [color] - цвет акцента карточки
+  /// Возвращает:
+  /// - виджет карточки статистики
   Widget _buildStatCard(String title, String value, Color color) {
     return Expanded(
       child: Container(
