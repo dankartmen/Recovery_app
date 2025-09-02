@@ -4,14 +4,27 @@ import 'package:auth_test/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+/// {@template exercise_service}
+/// Сервис для работы с упражнениями.
+/// Обеспечивает загрузку упражнений с сервера с возможностью фильтрации по типу травмы.
+/// {@endtemplate}
 class ExerciseService {
+  /// Сервис аутентификации для получения заголовков авторизации
   final AuthService authService;
 
-  ExerciseService({required this.authService});
-
+  /// Базовый URL сервера для API упражнений
   static const String _baseUrl = 'http://176.114.91.241:8000/exercises';
 
-  // Получение списка упражнений с сервера
+  /// {@macro exercise_service}
+  ExerciseService({required this.authService});
+
+  /// Получение списка упражнений с сервера
+  /// Принимает:
+  /// - [injuryType] - опциональный параметр для фильтрации упражнений по типу травмы
+  /// Возвращает:
+  /// - список упражнений
+  /// Выбрасывает исключение:
+  /// - при ошибках сети, сервера или аутентификации
   Future<List<Exercise>> getExercises({String? injuryType}) async {
     try {
       // Формируем параметры запроса

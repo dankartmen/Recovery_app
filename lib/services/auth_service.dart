@@ -9,26 +9,52 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/models/training_schedule.dart';
 
+/// {@template auth_service}
+/// Сервис для управления аутентификацией и авторизацией пользователя.
+/// Обеспечивает регистрацию, вход, выход, управление сессией и загрузку данных пользователя.
+/// {@endtemplate}
 class AuthService with ChangeNotifier {
-  // Ключ для хранения сессии пользователя в SharedPreferences
+  /// Ключ для хранения сессии пользователя в SharedPreferences
   static const String _prefKey = 'user_session';
 
-  // Данные пользователя и состояния авторизации
-  String? _username;
-  String? _password;
-  User? _currentUser;
+  /// Базовый URL сервера для API запросов
   static const String _baseUrl = 'http://176.114.91.241:8000';
+
+  /// Имя пользователя для аутентификации
+  String? _username;
+
+  /// Пароль пользователя для аутентификации
+  String? _password;
+
+  /// Текущий аутентифицированный пользователь
+  User? _currentUser;
+
+  /// Флаг состояния загрузки
   bool _isLoading = false;
+
+  /// Сообщение об ошибке при операциях аутентификации
   String? _errorMessage;
+
+  /// Флаг завершения инициализации сервиса
   bool _isInitialized = false;
 
-  // Геттеры для доступа к состоянию
+  /// {@macro auth_service}
+  AuthService();
+
+  /// Флаг завершения инициализации сервиса
   bool get isInitialized => _isInitialized;
+
+  /// Текущий аутентифицированный пользователь
   User? get currentUser => _currentUser;
+
+  /// Флаг состояния загрузки
   bool get isLoading => _isLoading;
+
+  /// Сообщение об ошибке при операциях аутентификации
   String? get errorMessage => _errorMessage;
 
-  // Инициализация сервиса и попытка автоматического входа
+  /// Инициализация сервиса и попытка автоматического входа по сохраненным данным
+  /// Выполняется при запуске приложения для восстановления сессии
   Future<void> initialize() async {
     if (_isInitialized) return; // Защита от повторной инициализации
     _isInitialized = true;
@@ -55,7 +81,8 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  // Автоматический вход по сохранённым данным
+  /// Автоматический вход по сохранённым данным пользователя
+  /// Вызывается при инициализации приложения для восстановления сессии
   Future<void> _silentLogin() async {
     if (_username == null || _password == null) return;
 
@@ -81,7 +108,8 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  // Сохраняем сессию пользователя в SharedPreferences
+  /// Сохранение сессии пользователя в SharedPreferences
+  /// Сохраняет имя пользователя и пароль в зашифрованном виде
   Future<void> _saveSession() async {
     if (_username == null || _password == null) return;
 
@@ -92,7 +120,8 @@ class AuthService with ChangeNotifier {
     );
   }
 
-  // Очищаем сессию пользователя
+  /// Очистка сессии пользователя из SharedPreferences
+  /// Удаляет все данные аутентификации и сбрасывает состояние
   Future<void> _clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefKey);
@@ -101,7 +130,11 @@ class AuthService with ChangeNotifier {
     _currentUser = null;
   }
 
-  // Формируем заголовок авторизации для запросов
+  /// Формирование заголовка авторизации для HTTP запросов
+  /// Возвращает:
+  /// - строку с Basic Auth заголовком
+  /// Выбрасывает исключение:
+  /// - если пользователь не аутентифицирован
   String getBasicAuthHeader() {
     if (_username == null || _password == null) {
       throw Exception('Пользователь не аутентифицирован');
@@ -111,7 +144,14 @@ class AuthService with ChangeNotifier {
     return 'Basic $credentials';
   }
 
-  // Регистрация нового пользователя
+  /// Регистрация нового пользователя в системе
+  /// Принимает:
+  /// - [username] - имя пользователя для регистрации
+  /// - [password] - пароль пользователя
+  /// Возвращает:
+  /// - зарегистрированного пользователя или null при ошибке
+  /// Выбрасывает исключение:
+  /// - при ошибках сети или сервера
   Future<User?> register(String username, String password) async {
     setLoading(true);
     try {
@@ -134,7 +174,14 @@ class AuthService with ChangeNotifier {
     return null;
   }
 
-  // Вход пользователя
+  /// Аутентификация пользователя в системе
+  /// Принимает:
+  /// - [username] - имя пользователя
+  /// - [password] - пароль пользователя
+  /// Возвращает:
+  /// - аутентифицированного пользователя
+  /// Выбрасывает исключение:
+  /// - при неверных учетных данных или ошибках сервера
   Future<User?> login(String username, String password) async {
     setLoading(true);
     try {
@@ -173,7 +220,12 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  // Сброс пароля пользователя
+  /// Сброс пароля пользователя
+  /// Принимает:
+  /// - [username] - имя пользователя для сброса пароля
+  /// - [newPassword] - новый пароль пользователя
+  /// Выбрасывает исключение:
+  /// - при ошибках сервера или сети
   Future<void> resetPassword(String username, String newPassword) async {
     setLoading(true);
     try {
@@ -193,7 +245,8 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  // Выход пользователя и очистка локальных данных
+  /// Выход пользователя из системы с очисткой локальных данных
+  /// Удаляет сессию, анкету и расписание тренировок
   Future<void> logout() async {
     await _clearSession();
     _errorMessage = null;
@@ -209,7 +262,11 @@ class AuthService with ChangeNotifier {
     await scheduleBox.clear();
   }
 
-  // Получение анкеты пользователя с сервера
+  /// Загрузка анкеты пользователя с сервера
+  /// Возвращает:
+  /// - данные восстановления или null если анкета не найдена
+  /// Выбрасывает исключение:
+  /// - при ошибках сети, сервера или отсутствии аутентификации
   Future<RecoveryData?> fetchQuestionnaire() async {
     if (_currentUser == null || _username == null || _password == null) {
       debugPrint("Ошибка: Пользователь не аутентифицирован");
@@ -244,15 +301,21 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  // Управление состоянием загрузки и ошибок
+  /// Установка состояния загрузки
+  /// Принимает:
+  /// - [value] - флаг состояния загрузки
   void setLoading(bool value) {
     _isLoading = value;
   }
 
+  /// Установка сообщения об ошибке
+  /// Принимает:
+  /// - [message] - текст сообщения об ошибке
   void setError(String message) {
     _errorMessage = message;
   }
 
+  /// Очистка сообщения об ошибке
   void clearError() {
     _errorMessage = null;
   }
