@@ -278,7 +278,7 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
     );
 
     if (selectedExercise == null) return;
-
+    if (!context.mounted) return;
     final TimeOfDay? selectedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
