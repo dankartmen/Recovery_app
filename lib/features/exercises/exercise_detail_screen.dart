@@ -44,9 +44,13 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   void initState() {
     super.initState();
     _loadSoundSettings(); // Загружаем настройки звука пользователя
-    _timerPlayer.setReleaseMode(ReleaseMode.stop); // Останавливаем звук после проигрывания
+    _timerPlayer.setReleaseMode(
+      ReleaseMode.stop,
+    ); // Останавливаем звук после проигрывания
     final authService = Provider.of<AuthService>(context, listen: false);
-    _historyRepo = HistoryRepository(authService); // Инициализируем репозиторий истории
+    _historyRepo = HistoryRepository(
+      authService,
+    ); // Инициализируем репозиторий истории
   }
 
   @override
@@ -243,6 +247,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       },
     );
 
+    if (!mounted) return;
+
     // Формируем объект истории упражнения
     final newHistory = ExerciseHistory(
       exerciseName: widget.exercise.title,
@@ -255,6 +261,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
 
     // Сохраняем историю в репозиторий и обновляем модели
     final result = await _historyRepo.addHistory(newHistory);
+
+    if (!mounted) return;
+
     if (result > 0) {
       Provider.of<HistoryModel>(
         context,
@@ -295,6 +304,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     if (_selectedSound != null) {
       try {
         await SoundService.playSound(_selectedSound!);
+        if (!mounted) return;
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Ошибка воспроизведения звука")),
@@ -406,10 +416,12 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: healthPrimaryColor.withOpacity(0.05),
+                              color: healthPrimaryColor.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: healthPrimaryColor.withOpacity(0.2),
+                                color: healthPrimaryColor.withValues(
+                                  alpha: 0.2,
+                                ),
                               ),
                             ),
                             child: Text(

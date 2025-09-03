@@ -43,7 +43,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 child: Icon(
                   Icons.lock_reset,
                   size: 80,
-                  color: healthPrimaryColor.withOpacity(0.8),
+                  color: healthPrimaryColor.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 20),
@@ -165,6 +165,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     final username = _usernameController.text;
+
+    if (!mounted) return;
 
     // Переходим сразу на экран установки нового пароля
     Navigator.push(

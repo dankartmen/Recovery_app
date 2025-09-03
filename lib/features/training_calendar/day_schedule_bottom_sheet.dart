@@ -159,7 +159,10 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: healthPrimaryColor.withOpacity(0.1), width: 1),
+        side: BorderSide(
+          color: healthPrimaryColor.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -168,8 +171,8 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
           decoration: BoxDecoration(
             color:
                 isCompleted
-                    ? Colors.green.withOpacity(0.1)
-                    : healthPrimaryColor.withOpacity(0.1),
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : healthPrimaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -222,7 +225,7 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
           Icon(
             Icons.fitness_center,
             size: 64,
-            color: healthSecondaryColor.withOpacity(0.3),
+            color: healthSecondaryColor.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -239,7 +242,7 @@ class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: healthSecondaryTextColor.withOpacity(0.7),
+              color: healthSecondaryTextColor.withValues(alpha: 0.7),
             ),
           ),
         ],

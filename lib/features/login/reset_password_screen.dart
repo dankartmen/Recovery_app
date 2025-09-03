@@ -50,7 +50,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 child: Icon(
                   Icons.lock_open,
                   size: 80,
-                  color: healthPrimaryColor.withOpacity(0.8),
+                  color: healthPrimaryColor.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 20),
@@ -236,7 +236,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: healthPrimaryColor.withOpacity(0.1),
+                  color: healthPrimaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Row(
@@ -244,7 +244,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     Icon(Icons.info, color: healthPrimaryColor, size: 20),
                     SizedBox(width: 10),
                     Expanded(
-                      child: const Text(
+                      child: Text(
                         '• Не менее 8 символов\n'
                         '• Заглавную букву (A-Z)\n'
                         '• Строчную букву (a-z)\n'
@@ -281,6 +281,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         widget.username,
         _passwordController.text,
       );
+      if (!mounted) return;
 
       // Возвращаемся на экран входа
       Navigator.popUntil(context, (route) => route.isFirst);

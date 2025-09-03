@@ -66,7 +66,7 @@ InputDecoration buildHealthInputDecoration(String labelText, {IconData? icon}) {
     labelStyle: const TextStyle(color: healthSecondaryTextColor),
     prefixIcon:
         icon != null
-            ? Icon(icon, color: healthSecondaryColor.withOpacity(0.7))
+            ? Icon(icon, color: healthSecondaryColor.withValues(alpha: 0.7))
             : null,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),

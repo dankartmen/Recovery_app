@@ -59,7 +59,9 @@ class ExerciseTile extends StatelessWidget {
                             tag,
                             style: const TextStyle(fontSize: 12),
                           ),
-                          backgroundColor: healthPrimaryColor.withOpacity(0.1),
+                          backgroundColor: healthPrimaryColor.withValues(
+                            alpha: 0.1,
+                          ),
                           labelPadding: const EdgeInsets.symmetric(
                             horizontal: 8,
                           ),

@@ -29,7 +29,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   late int _painLevel = widget.initialData?.painLevel ?? 0;
   late String _trainingTime = widget.initialData?.trainingTime ?? '';
   bool _consent = false;
-  late RecoveryData? _existingData = widget.initialData ?? null;
+  late RecoveryData? _existingData = widget.initialData;
 
   @override
   void initState() {
@@ -92,14 +92,16 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
         'training_schedule',
       );
       await scheduleBox.clear();
+      if (!mounted) return;
 
       final calendarModel = Provider.of<TrainingCalendarModel>(
         context,
         listen: false,
       );
       await calendarModel.generateAndSaveSchedule(updatedData);
-      calendarModel.refresh();
+      if (!mounted) return;
 
+      calendarModel.refresh();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -381,7 +383,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: healthPrimaryColor.withOpacity(0.05),
+                  color: healthPrimaryColor.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(

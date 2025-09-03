@@ -152,7 +152,7 @@ class _TimerPickerScreenState extends State<TimerPickerScreen> {
                     decoration: BoxDecoration(
                       color:
                           isSelected
-                              ? healthPrimaryColor.withOpacity(0.1)
+                              ? healthPrimaryColor.withValues(alpha: 0.1)
                               : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                     ),

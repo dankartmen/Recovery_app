@@ -526,7 +526,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 Icon(
                   Icons.history,
                   size: 72,
-                  color: healthSecondaryColor.withOpacity(0.3),
+                  color: healthSecondaryColor.withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -691,7 +691,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 24),
@@ -943,7 +943,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             Icon(
               Icons.history,
               size: 72,
-              color: healthSecondaryColor.withOpacity(0.3),
+              color: healthSecondaryColor.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 20),
             Text(
@@ -986,7 +986,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: healthPrimaryColor.withOpacity(0.1),
+            color: healthPrimaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(Icons.fitness_center, color: healthPrimaryColor),

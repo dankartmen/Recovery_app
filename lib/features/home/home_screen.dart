@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await _loadLatestData();
       _currentRecoveryData = widget.recoveryData;
       _initializeScreens();
+      if (!mounted) return;
       final historyModel = Provider.of<HistoryModel>(context, listen: false);
       await historyModel.loadHistory();
       setState(() => _isAppInitialized = true);

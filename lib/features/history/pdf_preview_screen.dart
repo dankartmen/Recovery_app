@@ -29,6 +29,7 @@ class PdfPreviewScreen extends StatelessWidget {
             icon: const Icon(Icons.save),
             onPressed: () async {
               final pdfBytes = await generatePdf();
+              if (!context.mounted) return;
               await _savePdf(pdfBytes, fileName, context);
             },
             tooltip: 'Сохранить отчет',

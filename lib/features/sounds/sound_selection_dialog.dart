@@ -116,6 +116,7 @@ class _SoundSelectionDialogState extends State<SoundSelectionDialog> {
   Future<void> _addCustomSoundinAndriod() async {
     try {
       final result = await FilePicker.platform.pickFiles(type: FileType.audio);
+      if (!mounted) return;
 
       if (result != null && result.files.isNotEmpty) {
         final platformFile = result.files.first;
@@ -123,6 +124,7 @@ class _SoundSelectionDialogState extends State<SoundSelectionDialog> {
           final success = await SoundService.addCustomSoundinAndroid(
             platformFile,
           );
+          if (!mounted) return;
           if (success) {
             setState(() {});
             ScaffoldMessenger.of(

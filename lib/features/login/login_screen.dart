@@ -28,9 +28,13 @@ class _LoginScreenState extends State<LoginScreen> {
       listen: false,
     );
     final questionnaire = await authService.fetchQuestionnaire();
+    if (!mounted) return;
 
     if (questionnaire != null) {
       await questionnaireRepo.saveQuestionnaire(questionnaire);
+
+      if (!mounted) return;
+
       Navigator.pushReplacementNamed(
         context,
         '/home',
@@ -55,8 +59,14 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_authService!.currentUser != null && !_autoLoginAttempted) {
       _autoLoginAttempted = true;
       final questionnaire = await _authService!.fetchQuestionnaire();
+      if (!mounted) return;
+
       if (questionnaire != null) {
-        Navigator.pushReplacementNamed(context, '/home', arguments: questionnaire);
+        Navigator.pushReplacementNamed(
+          context,
+          '/home',
+          arguments: questionnaire,
+        );
       } else {
         Navigator.pushReplacementNamed(context, '/questionnaire');
       }

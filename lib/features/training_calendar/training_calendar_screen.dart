@@ -310,7 +310,7 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
                     },
                     calendarStyle: CalendarStyle(
                       todayDecoration: BoxDecoration(
-                        color: healthPrimaryColor.withOpacity(0.2),
+                        color: healthPrimaryColor.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       selectedDecoration: BoxDecoration(
@@ -379,7 +379,7 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
                         return Container(
                           margin: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: healthPrimaryColor.withOpacity(0.1),
+                            color: healthPrimaryColor.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: healthPrimaryColor,
@@ -424,7 +424,7 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.2),
+                              color: color.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -503,9 +503,9 @@ class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

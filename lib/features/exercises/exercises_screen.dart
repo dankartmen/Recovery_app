@@ -148,7 +148,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
               Icon(
                 Icons.fitness_center,
                 size: 72,
-                color: healthSecondaryColor.withOpacity(0.5),
+                color: healthSecondaryColor.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 20),
               Text(
@@ -246,9 +246,9 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

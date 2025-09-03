@@ -301,40 +301,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (user != null) {
         // Загружаем анкету пользователя
         final questionnaire = await authService.fetchQuestionnaire();
-        if (mounted) {
-          if (questionnaire != null) {
-            // Инициализируем календарь тренировок
-            final calendarModel = Provider.of<TrainingCalendarModel>(
-              context,
-              listen: false,
-            );
-            final historyModel = Provider.of<HistoryModel>(
-              context,
-              listen: false,
-            );
-            final exerciseListModel = Provider.of<ExerciseListModel>(
-              context,
-              listen: false,
-            );
+        if (!mounted) return;
 
-            calendarModel.initialize(
-              authService,
-              historyModel,
-              exerciseListModel,
-            );
-            await calendarModel.generateAndSaveSchedule(questionnaire);
-          }
-
-          // После успешной регистрации можно перейти на нужный экран
-          Navigator.pushReplacementNamed(
+        if (questionnaire != null) {
+          // Инициализируем календарь тренировок
+          final calendarModel = Provider.of<TrainingCalendarModel>(
             context,
-            '/home',
-            arguments: questionnaire,
+            listen: false,
           );
+          final historyModel = Provider.of<HistoryModel>(
+            context,
+            listen: false,
+          );
+          final exerciseListModel = Provider.of<ExerciseListModel>(
+            context,
+            listen: false,
+          );
+
+          calendarModel.initialize(
+            authService,
+            historyModel,
+            exerciseListModel,
+          );
+          await calendarModel.generateAndSaveSchedule(questionnaire);
+          if (!mounted) return;
         }
+
+        // После успешной регистрации можно перейти на нужный экран
+        Navigator.pushReplacementNamed(
+          context,
+          '/home',
+          arguments: questionnaire,
+        );
       }
     } catch (e) {
       // Обработка ошибок
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Ошибка регистрации: $e')));
