@@ -30,17 +30,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   void initState() {
     super.initState();
     // Загрузка упражнений после построения виджета
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final exerciseListModel = Provider.of<ExerciseListModel>(
-        context,
-        listen: false,
-      );
-
-      exerciseListModel.loadExercises(
-        injuryType: widget.recoveryData.specificInjury,
-        minPainLevel: widget.recoveryData.painLevel,
-      );
-    });
+    _loadExercises();
   }
 
   /// Навигация к экрану детальной информации об упражнении
@@ -53,6 +43,19 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
       MaterialPageRoute(
         builder: (context) => ExerciseDetailScreen(exercise: exercise),
       ),
+    );
+  }
+
+  /// Метод для загрузки упражнений
+  void _loadExercises() {
+    final exerciseListModel = Provider.of<ExerciseListModel>(
+      context,
+      listen: false,
+    );
+
+    exerciseListModel.loadExercises(
+      injuryType: widget.recoveryData.specificInjury,
+      minPainLevel: widget.recoveryData.painLevel,
     );
   }
 
@@ -121,7 +124,54 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     }
 
     if (exerciseListModel.error != null) {
-      return Center(child: Text(exerciseListModel.error!));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 72,
+                color: healthSecondaryColor.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                exerciseListModel.error!,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: healthTextColor,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Попробуйте снова или проверьте подключение к интернету',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: healthSecondaryTextColor),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _loadExercises,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: healthPrimaryColor,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Попробовать снова',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     final exercises = exerciseListModel.exercises;
@@ -169,8 +219,8 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: healthSecondaryTextColor),
               ),
-              //const SizedBox(height: 20),
-              /*if (_searchQuery.isEmpty)
+              const SizedBox(height: 20),
+              if (_searchQuery.isEmpty)
                 ElevatedButton(
                   onPressed: _loadExercises,
                   style: ElevatedButton.styleFrom(
@@ -187,7 +237,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                     'Обновить список',
                     style: TextStyle(color: Colors.white),
                   ),
-                ),*/
+                ),
             ],
           ),
         ),
