@@ -33,7 +33,7 @@ class DayScheduleBottomSheet extends StatefulWidget {
 
   /// {@macro day_schedule_bottom_sheet}
   const DayScheduleBottomSheet({
-    Key? key,
+    super.key,
     required this.filteredExercises,
     required this.day,
     required this.getTrainingsForDay,
@@ -41,13 +41,13 @@ class DayScheduleBottomSheet extends StatefulWidget {
     required this.onDelete,
     required this.onUpdate,
     required this.isTrainingCompleted,
-  }) : super(key: key);
+  });
 
   @override
-  _DayScheduleBottomSheetState createState() => _DayScheduleBottomSheetState();
+  DayScheduleBottomSheetState createState() => DayScheduleBottomSheetState();
 }
 
-class _DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
+class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
   /// Локальный список тренировок для отображения
   late List<Training> trainings;
 

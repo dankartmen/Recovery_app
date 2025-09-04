@@ -6,7 +6,7 @@ class ExerciseTile extends StatelessWidget {
   final Exercise exercise;
   final VoidCallback onTap;
 
-  const ExerciseTile({required this.exercise, required this.onTap});
+  const ExerciseTile({super.key, required this.exercise, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

@@ -23,13 +23,13 @@ class HistoryScreen extends StatefulWidget {
   const HistoryScreen({
     required this.recoveryData,
     required this.schedule,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
   @override
-  _HistoryScreenState createState() => _HistoryScreenState();
+  HistoryScreenState createState() => HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class HistoryScreenState extends State<HistoryScreen> {
   String _selectedInjuryType = "Все";
   String _selectedTimePeriod = "За всё время";
   List<ExerciseHistory> _historyList = [];

@@ -63,6 +63,9 @@ class ExerciseService {
       }
     } catch (e) {
       debugPrint('Ошибка в getExercises: $e');
+      if (e.toString().contains('SocketException')) {
+        throw Exception('Ошибка соединения с сервером. Проверьте интернет.');
+      }
       rethrow;
     }
   }

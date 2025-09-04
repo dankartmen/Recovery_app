@@ -15,10 +15,10 @@ class QuestionnaireScreen extends StatefulWidget {
   const QuestionnaireScreen({super.key, this.initialData});
 
   @override
-  _QuestionnaireScreenState createState() => _QuestionnaireScreenState();
+  QuestionnaireScreenState createState() => QuestionnaireScreenState();
 }
 
-class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
+class QuestionnaireScreenState extends State<QuestionnaireScreen> {
   final _formKey = GlobalKey<FormState>();
   late String _name = widget.initialData?.name ?? '';
   late String _gender = widget.initialData?.gender ?? '';

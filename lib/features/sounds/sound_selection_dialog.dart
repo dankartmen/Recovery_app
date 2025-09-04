@@ -9,13 +9,13 @@ import 'sound_service.dart';
 class SoundSelectionDialog extends StatefulWidget {
   final Sound? currentSound;
 
-  const SoundSelectionDialog({this.currentSound});
+  const SoundSelectionDialog({super.key, this.currentSound});
 
   @override
-  _SoundSelectionDialogState createState() => _SoundSelectionDialogState();
+  SoundSelectionDialogState createState() => SoundSelectionDialogState();
 }
 
-class _SoundSelectionDialogState extends State<SoundSelectionDialog> {
+class SoundSelectionDialogState extends State<SoundSelectionDialog> {
   late Sound? _selectedSound;
   bool _isPlaying = false;
   Duration _currentPosition = Duration.zero;

@@ -16,13 +16,12 @@ class ExercisesScreen extends StatefulWidget {
   final RecoveryData recoveryData;
 
   /// {@macro exercises_screen}
-  const ExercisesScreen({Key? key, required this.recoveryData})
-    : super(key: key);
+  const ExercisesScreen({super.key, required this.recoveryData});
   @override
-  _ExercisesScreenState createState() => _ExercisesScreenState();
+  ExercisesScreenState createState() => ExercisesScreenState();
 }
 
-class _ExercisesScreenState extends State<ExercisesScreen> {
+class ExercisesScreenState extends State<ExercisesScreen> {
   /// Поисковый запрос для фильтрации упражнений
   String _searchQuery = '';
 

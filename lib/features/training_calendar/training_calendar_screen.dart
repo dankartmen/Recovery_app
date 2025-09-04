@@ -26,13 +26,13 @@ class TrainingCalendarScreen extends StatefulWidget {
   final RecoveryData recoveryData;
 
   /// {@macro training_calendar_screen}
-  const TrainingCalendarScreen({required this.recoveryData});
+  const TrainingCalendarScreen({super.key, required this.recoveryData});
 
   @override
-  _TrainingCalendarScreenState createState() => _TrainingCalendarScreenState();
+  TrainingCalendarScreenState createState() => TrainingCalendarScreenState();
 }
 
-class _TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
+class TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
   /// Hive box для хранения расписания тренировок
   late Box<TrainingSchedule> _scheduleBox;
 

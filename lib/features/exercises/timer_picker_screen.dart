@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../../styles/style.dart';
 
 class TimerPickerScreen extends StatefulWidget {
+  const TimerPickerScreen({super.key});
+
   @override
-  _TimerPickerScreenState createState() => _TimerPickerScreenState();
+  TimerPickerScreenState createState() => TimerPickerScreenState();
 }
 
-class _TimerPickerScreenState extends State<TimerPickerScreen> {
+class TimerPickerScreenState extends State<TimerPickerScreen> {
   int _minutes = 0;
   int _seconds = 0;
 

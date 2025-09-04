@@ -15,13 +15,13 @@ import '../training_calendar/training_calendar_screen.dart';
 class HomeScreen extends StatefulWidget {
   final RecoveryData recoveryData;
 
-  const HomeScreen({required this.recoveryData, Key? key}) : super(key: key);
+  const HomeScreen({required this.recoveryData, super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   late RecoveryData _currentRecoveryData;
   late List<Widget> _screens = [];

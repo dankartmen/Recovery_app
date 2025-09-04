@@ -19,13 +19,13 @@ import 'timer_picker_screen.dart';
 class ExerciseDetailScreen extends StatefulWidget {
   final Exercise exercise;
 
-  const ExerciseDetailScreen({required this.exercise});
+  const ExerciseDetailScreen({super.key, required this.exercise});
 
   @override
-  _ExerciseDetailScreenState createState() => _ExerciseDetailScreenState();
+  ExerciseDetailScreenState createState() => ExerciseDetailScreenState();
 }
 
-class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
+class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   int _remainingSeconds = 0;
   Timer? _timer;
   bool _isRunning = false;

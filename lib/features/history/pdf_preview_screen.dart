@@ -14,10 +14,10 @@ class PdfPreviewScreen extends StatelessWidget {
   final String fileName;
 
   const PdfPreviewScreen({
-    Key? key,
+    super.key,
     required this.generatePdf,
     required this.fileName,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

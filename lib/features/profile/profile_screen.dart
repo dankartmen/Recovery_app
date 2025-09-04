@@ -12,8 +12,8 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
     required this.recoveryData,
     this.onProfileUpdated,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   void _logout(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);

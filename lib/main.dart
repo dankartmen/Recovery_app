@@ -77,6 +77,8 @@ Future<void> _initializeApp() async {
 
 // Корневой виджет приложения
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     // Получение экземпляров моделей из Provider
@@ -134,11 +136,13 @@ class MyApp extends StatelessWidget {
       routes: {
         // Конфигурация маршрутов приложения
         '/auth': (context) => LoginScreen(),
-        '/home': (context) => HomeScreen(
+        '/home':
+            (context) => HomeScreen(
               recoveryData:
                   ModalRoute.of(context)!.settings.arguments as RecoveryData,
             ),
-        '/questionnaire': (context) => QuestionnaireScreen(
+        '/questionnaire':
+            (context) => QuestionnaireScreen(
               initialData:
                   ModalRoute.of(context)?.settings.arguments as RecoveryData?,
             ),
@@ -153,10 +157,13 @@ class MyApp extends StatelessWidget {
           return HistoryScreen(
             recoveryData: args,
             schedule:
-                Provider.of<HomeScreenModel>(context).schedule, // Передача расписания
+                Provider.of<HomeScreenModel>(
+                  context,
+                ).schedule, // Передача расписания
           );
         },
-        '/profile': (context) => ProfileScreen(
+        '/profile':
+            (context) => ProfileScreen(
               recoveryData:
                   ModalRoute.of(context)!.settings.arguments as RecoveryData,
             ),
@@ -176,18 +183,21 @@ class MyApp extends StatelessWidget {
         },
       },
       // Обработка неизвестных маршрутов
-      onUnknownRoute: (settings) => MaterialPageRoute(
-        builder: (context) =>
-            Scaffold(body: Center(child: Text('Страница не найдена'))),
-      ),
+      onUnknownRoute:
+          (settings) => MaterialPageRoute(
+            builder:
+                (context) =>
+                    Scaffold(body: Center(child: Text('Страница не найдена'))),
+          ),
       // Генерация маршрутов для передачи аргументов
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/home':
             return MaterialPageRoute(
-              builder: (context) => HomeScreen(
-                recoveryData: settings.arguments as RecoveryData,
-              ),
+              builder:
+                  (context) => HomeScreen(
+                    recoveryData: settings.arguments as RecoveryData,
+                  ),
             );
         }
         return null;
