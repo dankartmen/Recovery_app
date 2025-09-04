@@ -40,9 +40,9 @@ class HomeScreenState extends State<HomeScreen> {
     try {
       _homeModel = Provider.of<HomeScreenModel>(context, listen: false);
       await _loadTrainingSchedule();
-      await _loadLatestData();
       _currentRecoveryData = widget.recoveryData;
       _initializeScreens();
+      await _loadLatestData();
       if (!mounted) return;
       final historyModel = Provider.of<HistoryModel>(context, listen: false);
       await historyModel.loadHistory();

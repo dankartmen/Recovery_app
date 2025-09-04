@@ -3,6 +3,7 @@ import 'package:auth_test/data/repositories/history_repository.dart';
 import 'package:auth_test/features/login/login_screen.dart';
 import 'package:auth_test/services/auth_service.dart';
 import 'package:auth_test/services/exercise_service.dart';
+import 'package:auth_test/styles/style.dart';
 import 'package:flutter/material.dart';
 import 'package:auth_test/features/sounds/sound_service.dart';
 import 'package:auth_test/features/training_calendar/training_calendar_screen.dart';
@@ -107,7 +108,11 @@ class MyApp extends StatelessWidget {
     Widget startScreen;
     if (authService.isLoading) {
       // Показываем индикатор загрузки, пока идет авторизация
-      startScreen = Scaffold(body: Center(child: CircularProgressIndicator()));
+      startScreen = Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: healthPrimaryColor),
+        ),
+      );
     } else if (authService.currentUser != null) {
       // Если пользователь авторизован, сразу переходим на HomeScreen
       startScreen = FutureBuilder<RecoveryData?>(
@@ -139,11 +144,13 @@ class MyApp extends StatelessWidget {
       routes: {
         // Конфигурация маршрутов приложения
         '/auth': (context) => LoginScreen(),
-        '/home':
-            (context) => HomeScreen(
-              recoveryData:
-                  ModalRoute.of(context)!.settings.arguments as RecoveryData,
-            ),
+        '/home': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments;
+          if (args == null) {
+            return QuestionnaireScreen();
+          }
+          return HomeScreen(recoveryData: args as RecoveryData);
+        },
         '/questionnaire':
             (context) => QuestionnaireScreen(
               initialData:

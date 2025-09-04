@@ -107,14 +107,16 @@ class TrainingCalendarScreenState extends State<TrainingCalendarScreen> {
   Future<void> _loadSchedule() async {
     try {
       final savedSchedule = _scheduleBox.get('schedule');
-      if (savedSchedule != null) {
-        setState(() {
-          _schedule = savedSchedule;
-          _isLoading = false;
-        });
-      }
+
+      setState(() {
+        _schedule = savedSchedule ?? TrainingSchedule.empty();
+        _isLoading = false;
+      });
     } catch (e) {
       debugPrint('Ошибка загрузки расписания: $e');
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 

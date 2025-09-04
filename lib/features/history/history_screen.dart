@@ -4,7 +4,6 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/exercise_history.dart';
 import '../../data/models/history_model.dart';
-import '../../data/models/home_screen_model.dart';
 import '../../data/models/models.dart';
 import '../../data/models/training_schedule.dart';
 import 'package:intl/intl.dart';
@@ -34,6 +33,7 @@ class HistoryScreenState extends State<HistoryScreen> {
   String _selectedTimePeriod = "За всё время";
   List<ExerciseHistory> _historyList = [];
   HistoryModel? _historyModel;
+  bool _isLoading = true;
   String? _error;
 
   @override
@@ -44,18 +44,25 @@ class HistoryScreenState extends State<HistoryScreen> {
     });
   }
 
-  void _loadHistory() {
+  Future<void> _loadHistory() async {
+    debugPrint('Начало загрузки истории в HistoryScreen');
     setState(() {
       _error = null;
+      _isLoading = true;
     });
+
     try {
       final historyModel = Provider.of<HistoryModel>(context, listen: false);
-      if (!historyModel.isInitialized) {
-        historyModel.loadHistory();
-      }
+      await historyModel.loadHistory();
+      debugPrint('История загружена, записей: ${historyModel.history.length}');
+      setState(() {
+        _historyList = historyModel.history;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _error = "Не удалось загрузить историю. Попробуйте снова.";
+        _isLoading = false;
       });
     }
   }
@@ -108,14 +115,11 @@ class HistoryScreenState extends State<HistoryScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _historyModel ??= Provider.of<HistoryModel>(context, listen: false);
-    _refreshHistory();
-  }
-
-  // Обновляем метод обновления истории
-  void _refreshHistory() {
+    final historyModel = Provider.of<HistoryModel>(context, listen: false);
+    // Синхронизируем состояние с HistoryModel
     setState(() {
-      // Принудительно обновляем состояние при изменении модели
+      _historyList = historyModel.history;
+      _isLoading = historyModel.isLoading;
     });
   }
 
@@ -478,37 +482,12 @@ class HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<HistoryModel>(
-      builder: (context, historyModel, child) {
-        // Если история загружается
-        if (historyModel.isLoading) {
-          return Center(
-            child: CircularProgressIndicator(color: healthPrimaryColor),
-          );
-        }
-
-        // Если расписание еще не загружено
-        if (widget.schedule.trainings.isEmpty) {
-          return Consumer<HomeScreenModel>(
-            builder: (context, homeModel, child) {
-              // Если расписание в HomeScreenModel тоже пустое
-              if (homeModel.schedule.trainings.isEmpty) {
-                return Scaffold(
-                  appBar: buildAppBar('История упражнений'),
-                  body: Center(
-                    child: CircularProgressIndicator(color: healthPrimaryColor),
-                  ),
-                );
-              }
-
-              // Обновляем виджет с актуальным расписанием
-              return _buildContent(historyModel, homeModel.schedule);
-            },
-          );
-        }
-
-        return _buildContent(historyModel, widget.schedule);
-      },
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("История упражнений"),
+        backgroundColor: healthPrimaryColor,
+      ),
+      body: RefreshIndicator(child: _buildHistory(), onRefresh: _loadHistory),
     );
   }
 
@@ -963,6 +942,57 @@ class HistoryScreenState extends State<HistoryScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHistory() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_error!, style: TextStyle(color: Colors.red, fontSize: 16)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadHistory,
+              child: const Text('Повторить'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_historyList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 64, color: healthSecondaryTextColor),
+            const SizedBox(height: 8),
+            Text(
+              'История пуста',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: healthTextColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Выполняйте упражнения, чтобы отслеживать свой прогресс',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: healthSecondaryTextColor),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _historyList.length,
+      itemBuilder: (context, index) => _buildHistoryItem(_historyList[index]),
     );
   }
 

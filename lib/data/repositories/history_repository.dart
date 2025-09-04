@@ -76,8 +76,11 @@ class HistoryRepository {
         final List<dynamic> data = jsonDecode(response.body);
         debugPrint("Получено записей: ${data.length}");
         return data.map((json) => ExerciseHistory.fromJson(json)).toList();
+      } else if (response.statusCode == 404) {
+        return [];
+      } else {
+        throw Exception('Ошибка загрузки истории: ${response.statusCode}');
       }
-      return [];
     } catch (e) {
       debugPrint("Критическая ошибка в getAllHistory: $e");
       return [];

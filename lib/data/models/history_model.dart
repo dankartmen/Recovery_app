@@ -6,19 +6,21 @@ import '../repositories/history_repository.dart';
 import 'exercise_history.dart';
 
 class HistoryModel extends ChangeNotifier {
-  bool isLoading = true;
+  bool _isLoading = true;
+  bool _isInitialized = false;
   final HistoryRepository repository;
   List<ExerciseHistory> _history = [];
+
   List<ExerciseHistory> get history => _history;
-  bool isInitialized = false;
+  bool get isLoading => _isLoading;
+  bool get isInitialized => _isInitialized;
 
   HistoryModel(this.repository) {
     loadHistory();
   }
 
   Future<void> loadHistory() async {
-    if (isInitialized) return;
-    isLoading = true;
+    _isLoading = true;
     notifyListeners();
 
     try {
@@ -27,7 +29,7 @@ class HistoryModel extends ChangeNotifier {
     } catch (e) {
       debugPrint("Ошибка загрузки истории: $e");
     } finally {
-      isLoading = false;
+      _isLoading = false;
       notifyListeners();
     }
   }

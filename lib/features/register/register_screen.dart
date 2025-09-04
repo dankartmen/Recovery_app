@@ -325,14 +325,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
           await calendarModel.generateAndSaveSchedule(questionnaire);
           if (!mounted) return;
-        }
 
-        // После успешной регистрации можно перейти на нужный экран
-        Navigator.pushReplacementNamed(
-          context,
-          '/home',
-          arguments: questionnaire,
-        );
+          // После успешной регистрации можно перейти на нужный экран
+          Navigator.pushReplacementNamed(
+            context,
+            '/home',
+            arguments: questionnaire,
+          );
+        } else {
+          // Если анкета не найдена, переходим на экран заполнения анкеты
+          Navigator.pushReplacementNamed(context, 'questionnaire');
+        }
       }
     } catch (e) {
       // Обработка ошибок
