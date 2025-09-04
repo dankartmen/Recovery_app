@@ -24,7 +24,7 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   late RecoveryData _currentRecoveryData;
-  late List<Widget> _screens = [];
+  final List<Widget> _screens = [];
   final QuestionnaireRepository _repository = QuestionnaireRepository();
   late HomeScreenModel _homeModel;
   bool _isAppInitialized = false;

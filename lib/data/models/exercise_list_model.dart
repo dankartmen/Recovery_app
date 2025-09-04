@@ -17,7 +17,9 @@ class ExerciseListModel extends ChangeNotifier {
   Future<void> loadExercises({String? injuryType, int? minPainLevel}) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
 
     try {
       final result = await exerciseService.getExercises(injuryType: injuryType);
@@ -33,7 +35,9 @@ class ExerciseListModel extends ChangeNotifier {
       _exercises = [];
     } finally {
       _isLoading = false;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     }
   }
 }

@@ -403,7 +403,7 @@ class HistoryScreenState extends State<HistoryScreen> {
     final minutes = totalDuration.inMinutes.remainder(60);
 
     if (hours > 0) {
-      return '$hours ч ${minutes} мин';
+      return '$hours ч $minutes мин';
     }
     return '$minutes мин';
   }

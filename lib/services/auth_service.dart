@@ -140,7 +140,7 @@ class AuthService with ChangeNotifier {
       throw Exception('Пользователь не аутентифицирован');
     }
 
-    final credentials = base64Encode(utf8.encode('${_username}:${_password}'));
+    final credentials = base64Encode(utf8.encode('$_username:$_password'));
     return 'Basic $credentials';
   }
 
