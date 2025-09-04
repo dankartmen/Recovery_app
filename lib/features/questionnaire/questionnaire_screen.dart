@@ -280,6 +280,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
                   decoration: buildHealthInputDecoration(
                     'Конкретный вид травмы',
                   ),
+                  isExpanded: true,
                   items:
                       injuryCategories[_mainInjuryType]!.map((String value) {
                         return DropdownMenuItem<String>(
