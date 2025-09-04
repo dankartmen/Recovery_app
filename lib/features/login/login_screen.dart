@@ -150,50 +150,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 24),
 
-                            // Сообщение об ошибке
-                            if (authService.errorMessage != null)
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade50,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.error,
-                                          color: Colors.red,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            authService.errorMessage!,
-                                            style: const TextStyle(
-                                              color: Colors.red,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (authService.errorMessage!.contains(
-                                      'пароль',
-                                    ))
-                                      const SizedBox(height: 8),
-                                    const Text(
-                                      'Проверьте требования к паролю',
-                                      style: TextStyle(
-                                        color: Colors.red,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (authService.errorMessage != null)
-                              const SizedBox(height: 16),
-
                             // Поле имени пользователя
                             TextFormField(
                               controller: _usernameController,
@@ -375,8 +331,36 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
       await _navigateAfterLogin(authService);
+    } catch (e) {
+      String errorMessage;
+      if (e.toString().contains('Connection reset by peer')) {
+        errorMessage =
+            'Ошибка соединения с сервером. Проверьте интернет и попробуйте снова.';
+      } else if (e.toString().contains('ClientException')) {
+        errorMessage = 'Не удалось подключиться к серверу. Попробуйте позже.';
+      } else if (e.toString().contains('401')) {
+        errorMessage = 'Неверное имя пользователя или пароль.';
+      } else {
+        errorMessage = 'Произошла ошибка: $e';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 }

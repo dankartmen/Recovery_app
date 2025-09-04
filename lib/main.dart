@@ -6,6 +6,7 @@ import 'package:auth_test/services/exercise_service.dart';
 import 'package:flutter/material.dart';
 import 'package:auth_test/features/sounds/sound_service.dart';
 import 'package:auth_test/features/training_calendar/training_calendar_screen.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'adapters/exercise_adapter.dart';
 import 'adapters/time_of_day_adapter.dart';
@@ -27,7 +28,9 @@ import 'features/sounds/sound_selection_dialog.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+/* bulat bulat1000T$ */
 void main() async {
+  debugPaintSizeEnabled = true;
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeApp();
 
