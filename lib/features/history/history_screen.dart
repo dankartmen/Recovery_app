@@ -1,13 +1,19 @@
+import 'package:auth_test/data/models/exercise_list_model.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../../data/models/exercise_history.dart';
 import '../../data/models/history_model.dart';
 import '../../data/models/models.dart';
+import '../../data/models/training.dart';
+import '../../data/models/training_calendar_model.dart';
 import '../../data/models/training_schedule.dart';
+import '../../data/models/home_screen_model.dart';
 import 'package:intl/intl.dart';
 import '../../styles/style.dart';
 import 'pdf_preview_screen.dart';
+import '../training_calendar/day_schedule_bottom_sheet.dart';
 
 // Экран истории выполненных упражнений
 class HistoryScreen extends StatefulWidget {
@@ -27,31 +33,58 @@ class HistoryScreenState extends State<HistoryScreen> {
   String _selectedInjuryType = "Все";
   String _selectedTimePeriod = "За всё время";
   List<ExerciseHistory> _historyList = [];
-  HistoryModel? _historyModel;
   bool _isLoading = true;
   String? _error;
+  TrainingSchedule _schedule = TrainingSchedule(trainings: {}, injuryType: '');
+  List<Exercise> _exercises = []; // Для добавления тренировок
+
+  /// Выбранный день в календаре
+  DateTime? _selectedDay;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadHistory();
+      _loadData();
     });
   }
 
-  Future<void> _loadHistory() async {
-    debugPrint('Начало загрузки истории в HistoryScreen');
+  Future<void> _loadData() async {
+    debugPrint('Начало загрузки данных в HistoryScreen');
     setState(() {
       _error = null;
       _isLoading = true;
     });
 
     try {
+      // Загрузка истории
       final historyModel = Provider.of<HistoryModel>(context, listen: false);
       await historyModel.loadHistory();
-      debugPrint('История загружена, записей: ${historyModel.history.length}');
+      debugPrint(
+        'История загружена в HistoryScreen, записей: ${historyModel.history.length}',
+      );
+      _historyList = historyModel.history;
+
+      // Загрузка расписания из Hive
+      final scheduleBox = await Hive.openBox<TrainingSchedule>(
+        'training_schedule',
+      );
+      final savedSchedule = scheduleBox.get('schedule');
+      _schedule = savedSchedule ?? TrainingSchedule.empty();
+      if (!mounted) return;
+
+      // Загрузка упражнений
+      final exerciseListModel = Provider.of<ExerciseListModel>(
+        context,
+        listen: false,
+      );
+      if (exerciseListModel.exercises.isEmpty) {
+        await exerciseListModel.loadExercises(
+          injuryType: widget.recoveryData.specificInjury,
+        );
+      }
+      _exercises = exerciseListModel.exercises;
       setState(() {
-        _historyList = historyModel.history;
         _isLoading = false;
       });
     } catch (e) {
@@ -80,7 +113,7 @@ class HistoryScreenState extends State<HistoryScreen> {
       return 0; // если нету выполненных тренировок
     }
     // 2. Получаем запланированные тренировки
-    final plannedTrainings = widget.schedule.trainings[normalizedDay] ?? [];
+    final plannedTrainings = _schedule.trainings[normalizedDay] ?? [];
 
     // 3. Определяем статус
     if (plannedTrainings.isEmpty) {
@@ -107,14 +140,144 @@ class HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  /// Показ деталей дня (нижний лист с тренировками)
+  /// Принимает:
+  /// - [day] - день для отображения деталей
+  void _showDayDetails(DateTime day) {
+    final normalizedDay = DateTime(day.year, day.month, day.day);
+    final dayTrainings = _schedule.trainings[normalizedDay] ?? [];
+    debugPrint(
+      'Запрошены тренировки на ${DateFormat('dd.MM.yyyy').format(normalizedDay)}: ${dayTrainings.length}',
+    );
+
+    final isPastDay = normalizedDay.isBefore(DateTime.now());
+
+    showModalBottomSheet(
+      context: context,
+      builder:
+          (context) => DayScheduleBottomSheet(
+            filteredExercises: _exercises,
+            day: normalizedDay,
+            getTrainingsForDay: () => dayTrainings,
+            onAdd:
+                isPastDay
+                    ? null
+                    : (training) => _addTraining(normalizedDay, training),
+            onDelete:
+                isPastDay
+                    ? null
+                    : (training) => _deleteTraining(normalizedDay, training),
+            onUpdate:
+                isPastDay
+                    ? null
+                    : (oldTraining, newTraining) => _updateTraining(
+                      normalizedDay,
+                      oldTraining,
+                      newTraining,
+                    ),
+            isTrainingCompleted:
+                Provider.of<TrainingCalendarModel>(
+                  context,
+                  listen: false,
+                ).isTrainingCompleted,
+            isReadOnly: isPastDay,
+          ),
+    );
+  }
+
+  /// Обновление тренировки
+  /// Принимает:
+  /// - [day] - день тренировки
+  /// - [oldTraining] - старая версия тренировки
+  /// - [newTraining] - новая версия тренировки
+  void _updateTraining(
+    DateTime day,
+    Training oldTraining,
+    Training newTraining,
+  ) {
+    final index = _schedule.trainings[day]?.indexOf(oldTraining);
+
+    if (index != null && index >= 0) {
+      setState(() {
+        _schedule.trainings[day]![index] = newTraining;
+      });
+      _saveSchedule(_schedule);
+    }
+  }
+
+  /// Добавление новой тренировки
+  /// Принимает:
+  /// - [day] - день для добавления тренировки
+  /// - [training] - данные тренировки
+  void _addTraining(DateTime day, Training training) {
+    final List<Training> newTrainings = [
+      ..._schedule.trainings[day] ?? [],
+      training,
+    ];
+
+    setState(() {
+      _schedule.trainings[day] = newTrainings;
+    });
+
+    _saveSchedule(_schedule);
+  }
+
+  /// Удаление тренировки
+  /// Принимает:
+  /// - [day] - день тренировки
+  /// - [training] - тренировка для удаления
+  void _deleteTraining(DateTime day, Training training) {
+    final List<Training> newTrainings = [...?_schedule.trainings[day]];
+    newTrainings.remove(training);
+
+    setState(() {
+      if (newTrainings.isEmpty) {
+        _schedule.trainings.remove(day);
+      } else {
+        _schedule.trainings[day] = newTrainings;
+      }
+    });
+
+    _saveSchedule(_schedule);
+  }
+
+  /// Сохранение расписания тренировок в хранилище
+  /// Принимает:
+  /// - [schedule] - расписание для сохранения
+  Future<void> _saveSchedule(TrainingSchedule schedule) async {
+    setState(() => _schedule = schedule);
+    try {
+      final scheduleBox = await Hive.openBox<TrainingSchedule>(
+        'training_schedule',
+      );
+      await scheduleBox.put('schedule', schedule);
+      if (!mounted) return;
+
+      // Обновляем глобальное состояние
+      Provider.of<HomeScreenModel>(
+        context,
+        listen: false,
+      ).updateSchedule(schedule);
+
+      // УВЕДОМЛЕНИЕ ОБ УСПЕШНОМ СОХРАНЕНИИ
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Расписание обновлено!')));
+    } catch (e) {
+      debugPrint('Ошибка сохранения расписания: $e');
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final historyModel = Provider.of<HistoryModel>(context, listen: false);
+    final homeModel = Provider.of<HomeScreenModel>(context, listen: false);
     // Синхронизируем состояние с HistoryModel
     setState(() {
       _historyList = historyModel.history;
       _isLoading = historyModel.isLoading;
+      _schedule = homeModel.schedule;
     });
   }
 
@@ -180,207 +343,196 @@ class HistoryScreenState extends State<HistoryScreen> {
         title: const Text("История упражнений"),
         backgroundColor: healthPrimaryColor,
       ),
-      body: RefreshIndicator(child: _buildHistory(), onRefresh: _loadHistory),
+      body: RefreshIndicator(child: _buildContent(), onRefresh: _loadData),
     );
   }
 
-  Widget _buildContent(HistoryModel historyModel, TrainingSchedule schedule) {
-    _historyList = historyModel.history;
-    if (_error != null || _historyList.isEmpty) {
-      return Scaffold(
-        appBar: buildAppBar('История упражнений'),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.history,
-                  size: 72,
-                  color: healthSecondaryColor.withValues(alpha: 0.3),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  _error ?? 'История упражнений пуста',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: healthTextColor,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: _loadHistory,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: healthPrimaryColor,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Попробовать снова',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: healthPrimaryColor),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_error!, style: TextStyle(color: Colors.red, fontSize: 16)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadData,
+              child: const Text('Повторить'),
             ),
-          ),
+          ],
         ),
       );
     }
 
-    _historyList = historyModel.history;
-    return Scaffold(
-      appBar: buildAppBar(
-        'История упражнений',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
-            onPressed: _exportToPdf,
-            tooltip: 'Экспорт для врача',
-          ),
-        ],
-      ),
-      body: Container(
-        color: healthBackgroundColor,
+    // Фильтрация истории по выбранным параметрам
+    List<ExerciseHistory> filteredHistory = _historyList;
+    if (_selectedInjuryType != "Все") {
+      filteredHistory =
+          filteredHistory
+              .where((h) => h.exerciseName.contains(_selectedInjuryType))
+              .toList();
+    }
+
+    if (filteredHistory.isEmpty) {
+      return Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Статистика вверху
-            _buildStatsHeader(),
-            const SizedBox(height: 16),
-
-            // Фильтры
-            _buildFilters(),
-            const SizedBox(height: 16),
-
-            // Таймлайн восстановления
-            _buildRecoveryTimeline(),
-            const SizedBox(height: 16),
-
-            // Заголовок списка
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Text(
-                    'История упражнений',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: healthTextColor,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Всего: ${_historyList.length}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: healthSecondaryTextColor,
-                    ),
-                  ),
-                ],
+            Icon(Icons.history, size: 64, color: healthSecondaryTextColor),
+            const SizedBox(height: 8),
+            Text(
+              'История пуста',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: healthTextColor,
               ),
             ),
             const SizedBox(height: 8),
-
-            // Список истории
-            Expanded(
-              child:
-                  _historyList.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        itemCount: _historyList.length,
-                        itemBuilder:
-                            (context, index) =>
-                                _buildHistoryItem(_historyList[index]),
-                      ),
+            Text(
+              'Выполняйте упражнения, чтобы отслеживать свой прогресс',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: healthSecondaryTextColor),
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildStatsHeader() {
-    final totalDuration = _historyList.fold<Duration>(
-      Duration.zero,
-      (prev, element) => prev + element.duration,
-    );
-
-    final totalSets = _historyList.fold<int>(0, (sum, item) => sum + item.sets);
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStatItem(
-            'Упражнений',
-            _historyList.length.toString(),
-            Icons.fitness_center,
-            healthPrimaryColor,
-          ),
-          _buildStatItem(
-            'Подходов',
-            totalSets.toString(),
-            Icons.repeat,
-            healthSecondaryColor,
-          ),
-          _buildStatItem(
-            'Общее время',
-            '${totalDuration.inHours}ч ${totalDuration.inMinutes.remainder(60)}м',
-            Icons.access_time,
-            Color(0xFF6A11CB),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+        // Календарь (восстановленный)
+        TableCalendar(
+          locale: 'ru_RU',
+          startingDayOfWeek: StartingDayOfWeek.monday,
+          firstDay: DateTime.utc(2020, 1, 1),
+          lastDay: DateTime.utc(2030, 12, 31),
+          focusedDay: DateTime.now(),
+          calendarStyle: CalendarStyle(
+            todayDecoration: BoxDecoration(
+              color: healthPrimaryColor.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            selectedDecoration: BoxDecoration(
+              color: healthPrimaryColor,
+              shape: BoxShape.circle,
+            ),
+            selectedTextStyle: const TextStyle(color: Colors.white),
+            weekendTextStyle: TextStyle(color: Colors.red[300]),
           ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: healthTextColor,
+          headerStyle: HeaderStyle(
+            formatButtonVisible: false,
+            titleCentered: true,
+            titleTextStyle: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: healthTextColor,
+            ),
+            leftChevronIcon: Icon(
+              Icons.chevron_left,
+              color: healthPrimaryColor,
+            ),
+            rightChevronIcon: Icon(
+              Icons.chevron_right,
+              color: healthPrimaryColor,
+            ),
+          ),
+          daysOfWeekStyle: DaysOfWeekStyle(
+            weekdayStyle: TextStyle(
+              color: healthTextColor,
+              fontWeight: FontWeight.bold,
+            ),
+            weekendStyle: TextStyle(
+              color: Colors.red[300],
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          onDaySelected: (selectedDay, focusedDay) {
+            setState(() {
+              _selectedDay = selectedDay;
+            });
+            _showDayDetails(selectedDay);
+          },
+          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          calendarBuilders: CalendarBuilders(
+            markerBuilder: (context, day, events) {
+              final status = _getDayStatus(day, _historyList);
+              return status > 0
+                  ? Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _getStatusColor(status),
+                    ),
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(top: 24),
+                  )
+                  : null;
+            },
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: healthSecondaryTextColor),
+        const SizedBox(height: 16),
+
+        // Фильтры
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            DropdownButton<String>(
+              value: _selectedInjuryType,
+              items:
+                  ['Все', 'Тип 1', 'Тип 2'] // Замените на реальные типы травм
+                      .map(
+                        (type) => DropdownMenuItem<String>(
+                          value: type,
+                          child: Text(type),
+                        ),
+                      )
+                      .toList(),
+              onChanged:
+                  (value) => setState(() => _selectedInjuryType = value!),
+            ),
+            DropdownButton<String>(
+              value: _selectedTimePeriod,
+              items:
+                  [
+                        'За всё время',
+                        'За неделю',
+                        'За месяц',
+                      ] // Замените на реальные периоды
+                      .map(
+                        (period) => DropdownMenuItem<String>(
+                          value: period,
+                          child: Text(period),
+                        ),
+                      )
+                      .toList(),
+              onChanged:
+                  (value) => setState(() => _selectedTimePeriod = value!),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Кнопка экспорта PDF (восстановленная)
+        ElevatedButton(
+          onPressed: _exportToPdf,
+          child: const Text('Экспорт в PDF'),
+        ),
+        const SizedBox(height: 16),
+
+        // Список истории
+        Expanded(
+          child: ListView.builder(
+            itemCount: filteredHistory.length,
+            itemBuilder:
+                (context, index) => _buildHistoryItem(filteredHistory[index]),
+          ),
         ),
       ],
     );
@@ -464,228 +616,6 @@ class HistoryScreenState extends State<HistoryScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildRecoveryTimeline() {
-    // Получаем дату первого упражнения
-    if (_historyList.isEmpty) {
-      return _buildEmptyTimelinePlaceholder();
-    }
-
-    final sortedHistory = List<ExerciseHistory>.from(_historyList)
-      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-    final firstExerciseDate =
-        sortedHistory.isNotEmpty
-            ? sortedHistory.first.dateTime
-            : DateTime.now();
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Прогресс восстановления",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: healthTextColor,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            height: 80,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: 30,
-              itemBuilder: (context, index) {
-                final day = firstExerciseDate.add(Duration(days: index));
-                final status = _getDayStatus(day, _historyList);
-                final color = _getStatusColor(status);
-
-                return Container(
-                  width: 60,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: healthDividerColor),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Д${index + 1}",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: healthSecondaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Icon(Icons.check_circle, color: color, size: 24),
-                      const SizedBox(height: 2),
-                      Text(
-                        DateFormat('dd.MM').format(day),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: healthSecondaryTextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildStatusIndicator(Colors.green, 'Выполнено'),
-              const SizedBox(width: 16),
-              _buildStatusIndicator(Colors.yellow, 'Частично'),
-              const SizedBox(width: 16),
-              _buildStatusIndicator(Colors.grey, 'Не выполнено'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyTimelinePlaceholder() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.history_toggle_off, size: 40, color: healthSecondaryColor),
-          const SizedBox(height: 8),
-          Text(
-            'Начните выполнять упражнения, чтобы отслеживать прогресс',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: healthSecondaryTextColor),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusIndicator(Color color, String label) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: healthSecondaryTextColor),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.history,
-              size: 72,
-              color: healthSecondaryColor.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'История упражнений пуста',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: healthTextColor,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Выполняйте упражнения, чтобы отслеживать свой прогресс',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: healthSecondaryTextColor),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHistory() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_error!, style: TextStyle(color: Colors.red, fontSize: 16)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadHistory,
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      );
-    }
-    if (_historyList.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history, size: 64, color: healthSecondaryTextColor),
-            const SizedBox(height: 8),
-            Text(
-              'История пуста',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: healthTextColor,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Выполняйте упражнения, чтобы отслеживать свой прогресс',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: healthSecondaryTextColor),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: _historyList.length,
-      itemBuilder: (context, index) => _buildHistoryItem(_historyList[index]),
     );
   }
 

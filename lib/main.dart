@@ -6,7 +6,6 @@ import 'package:auth_test/services/exercise_service.dart';
 import 'package:auth_test/styles/style.dart';
 import 'package:flutter/material.dart';
 import 'package:auth_test/features/sounds/sound_service.dart';
-import 'package:auth_test/features/training_calendar/training_calendar_screen.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'adapters/exercise_adapter.dart';
@@ -185,11 +184,6 @@ class MyApp extends StatelessWidget {
           final exercise =
               ModalRoute.of(context)!.settings.arguments as Exercise;
           return ExerciseDetailScreen(exercise: exercise);
-        },
-        '/calendar': (context) {
-          final args =
-              ModalRoute.of(context)!.settings.arguments as RecoveryData;
-          return TrainingCalendarScreen(recoveryData: args);
         },
       },
       // Обработка неизвестных маршрутов

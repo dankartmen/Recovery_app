@@ -9,7 +9,6 @@ import '../../data/repositories/questionnaire_repository.dart';
 import '../history/history_screen.dart';
 import '../profile/profile_screen.dart';
 import '../exercises/exercises_screen.dart';
-import '../training_calendar/training_calendar_screen.dart';
 
 // Главный экран с навигацией между разделами
 class HomeScreen extends StatefulWidget {
@@ -87,7 +86,6 @@ class HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      TrainingCalendarScreen(recoveryData: _currentRecoveryData),
     ]);
   }
 
