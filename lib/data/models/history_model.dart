@@ -7,13 +7,11 @@ import 'exercise_history.dart';
 
 class HistoryModel extends ChangeNotifier {
   bool _isLoading = true;
-  bool _isInitialized = false;
   final HistoryRepository repository;
   List<ExerciseHistory> _history = [];
 
   List<ExerciseHistory> get history => _history;
   bool get isLoading => _isLoading;
-  bool get isInitialized => _isInitialized;
 
   HistoryModel(this.repository) {
     loadHistory();
