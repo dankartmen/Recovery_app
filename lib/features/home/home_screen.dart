@@ -147,11 +147,6 @@ class HomeScreenState extends State<HomeScreen> {
             activeIcon: Icon(Icons.history, color: Colors.blue),
             label: 'История',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            activeIcon: Icon(Icons.calendar_today, color: Colors.blue),
-            label: 'Календарь',
-          ),
         ],
       ),
     );

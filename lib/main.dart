@@ -30,7 +30,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 /* bulat bulat1000T$ */
 void main() async {
-  debugPaintSizeEnabled = true;
+  //debugPaintSizeEnabled = true;
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeApp();
 
