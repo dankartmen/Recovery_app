@@ -338,6 +338,9 @@ class HistoryScreenState extends State<HistoryScreen> {
       appBar: AppBar(
         title: const Text("История упражнений"),
         backgroundColor: healthPrimaryColor,
+        actions: [
+          IconButton(onPressed: _exportToPdf, icon: Icon(Icons.picture_as_pdf)),
+        ],
       ),
       body: RefreshIndicator(onRefresh: _loadData, child: _buildContent()),
     );
@@ -473,42 +476,52 @@ class HistoryScreenState extends State<HistoryScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            DropdownButton<String>(
-              value: _selectedInjuryType,
-              items:
-                  ['Все', ...injuryCategories.keys]
-                      .map(
-                        (type) => DropdownMenuItem<String>(
-                          value: type,
-                          child: Text(type),
-                        ),
-                      )
-                      .toList(),
-              onChanged:
-                  (value) => setState(() => _selectedInjuryType = value!),
+            Expanded(
+              child: DropdownButton<String>(
+                value: _selectedInjuryType,
+                isExpanded: true,
+                items:
+                    [
+                          'Все',
+                          'Ортопедические',
+                          'Нейрохирургические',
+                          'Спортивные травмы',
+                          'Послеоперационная реабилитация',
+                          'Хронические заболевания',
+                        ]
+                        .map(
+                          (type) => DropdownMenuItem<String>(
+                            value: type,
+                            child: Text(type, overflow: TextOverflow.ellipsis),
+                          ),
+                        )
+                        .toList(),
+                onChanged:
+                    (value) => setState(() => _selectedInjuryType = value!),
+              ),
             ),
-            DropdownButton<String>(
-              value: _selectedTimePeriod,
-              items:
-                  ['За всё время', 'За неделю', 'За месяц']
-                      .map(
-                        (period) => DropdownMenuItem<String>(
-                          value: period,
-                          child: Text(period),
-                        ),
-                      )
-                      .toList(),
-              onChanged:
-                  (value) => setState(() => _selectedTimePeriod = value!),
+            const SizedBox(width: 16),
+            Expanded(
+              child: DropdownButton<String>(
+                value: _selectedTimePeriod,
+                isExpanded: true,
+                items:
+                    ['За всё время', 'За неделю', 'За месяц']
+                        .map(
+                          (period) => DropdownMenuItem<String>(
+                            value: period,
+                            child: Text(
+                              period,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                onChanged:
+                    (value) => setState(() => _selectedTimePeriod = value!),
+              ),
             ),
           ],
-        ),
-        const SizedBox(height: 16),
-
-        // Кнопка экспорта PDF (восстановленная)
-        ElevatedButton(
-          onPressed: _exportToPdf,
-          child: const Text('Экспорт в PDF'),
         ),
         const SizedBox(height: 16),
 
