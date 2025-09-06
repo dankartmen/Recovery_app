@@ -300,40 +300,36 @@ class HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // Применение фильтров к данным
-  List<ExerciseHistory> _applyFilters(List<ExerciseHistory> history) {
-    var result = history;
+  // Метод фильтрации истории
+  List<ExerciseHistory> _filterHistory(List<ExerciseHistory> history) {
+    List<ExerciseHistory> filtered = history;
 
-    // Фильтр по времени
+    // Фильтрация по типу травмы
+    if (_selectedInjuryType != "Все") {
+      filtered =
+          filtered
+              .where((h) => h.exerciseName.contains(_selectedInjuryType))
+              .toList();
+    }
+
+    // Фильтрация по периоду времени
     final now = DateTime.now();
     switch (_selectedTimePeriod) {
       case 'За неделю':
-        result =
-            result
-                .where(
-                  (h) => h.dateTime.isAfter(now.subtract(Duration(days: 7))),
-                )
-                .toList();
+        final lastWeek = now.subtract(Duration(days: 7));
+        filtered = filtered.where((h) => h.dateTime.isAfter(lastWeek)).toList();
         break;
       case 'За месяц':
-        result =
-            result
-                .where(
-                  (h) => h.dateTime.isAfter(now.subtract(Duration(days: 30))),
-                )
-                .toList();
+        final lastMonth = now.subtract(Duration(days: 30));
+        filtered =
+            filtered.where((h) => h.dateTime.isAfter(lastMonth)).toList();
         break;
-      case 'За 3 месяца':
-        result =
-            result
-                .where(
-                  (h) => h.dateTime.isAfter(now.subtract(Duration(days: 90))),
-                )
-                .toList();
+      default: // 'За всё время'
+        // Нет фильтрации
         break;
     }
 
-    return result;
+    return filtered;
   }
 
   @override
@@ -343,7 +339,7 @@ class HistoryScreenState extends State<HistoryScreen> {
         title: const Text("История упражнений"),
         backgroundColor: healthPrimaryColor,
       ),
-      body: RefreshIndicator(child: _buildContent(), onRefresh: _loadData),
+      body: RefreshIndicator(onRefresh: _loadData, child: _buildContent()),
     );
   }
 
@@ -371,13 +367,7 @@ class HistoryScreenState extends State<HistoryScreen> {
     }
 
     // Фильтрация истории по выбранным параметрам
-    List<ExerciseHistory> filteredHistory = _historyList;
-    if (_selectedInjuryType != "Все") {
-      filteredHistory =
-          filteredHistory
-              .where((h) => h.exerciseName.contains(_selectedInjuryType))
-              .toList();
-    }
+    List<ExerciseHistory> filteredHistory = _filterHistory(_historyList);
 
     if (filteredHistory.isEmpty) {
       return Center(
@@ -486,7 +476,7 @@ class HistoryScreenState extends State<HistoryScreen> {
             DropdownButton<String>(
               value: _selectedInjuryType,
               items:
-                  ['Все', 'Тип 1', 'Тип 2'] // Замените на реальные типы травм
+                  ['Все', ...injuryCategories.keys]
                       .map(
                         (type) => DropdownMenuItem<String>(
                           value: type,
@@ -500,11 +490,7 @@ class HistoryScreenState extends State<HistoryScreen> {
             DropdownButton<String>(
               value: _selectedTimePeriod,
               items:
-                  [
-                        'За всё время',
-                        'За неделю',
-                        'За месяц',
-                      ] // Замените на реальные периоды
+                  ['За всё время', 'За неделю', 'За месяц']
                       .map(
                         (period) => DropdownMenuItem<String>(
                           value: period,
@@ -535,87 +521,6 @@ class HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildFilters() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: healthDividerColor),
-              ),
-              child: DropdownButton<String>(
-                value: _selectedInjuryType,
-                isExpanded: true,
-                underline: const SizedBox(),
-                icon: Icon(Icons.arrow_drop_down, color: healthSecondaryColor),
-                style: TextStyle(color: healthTextColor),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedInjuryType = newValue!;
-                  });
-                },
-                items:
-                    <String>[
-                      'Все',
-                      'Ортопедические',
-                      'Нейрохирургические',
-                      'Спортивные',
-                      'Послеоперационные',
-                      'Хронические',
-                    ].map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: healthDividerColor),
-              ),
-              child: DropdownButton<String>(
-                value: _selectedTimePeriod,
-                isExpanded: true,
-                underline: const SizedBox(),
-                icon: Icon(Icons.arrow_drop_down, color: healthSecondaryColor),
-                style: TextStyle(color: healthTextColor),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedTimePeriod = newValue!;
-                  });
-                },
-                items:
-                    <String>[
-                      'За всё время',
-                      'За неделю',
-                      'За месяц',
-                      'За 3 месяца',
-                    ].map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
