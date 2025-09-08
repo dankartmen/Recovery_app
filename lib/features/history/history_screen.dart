@@ -307,9 +307,29 @@ class HistoryScreenState extends State<HistoryScreen> {
     // Фильтрация по типу травмы
     if (_selectedInjuryType != "Все") {
       filtered =
-          filtered
-              .where((h) => h.exerciseName.contains(_selectedInjuryType))
-              .toList();
+          filtered.where((h) {
+            // Находим упражнение в списке по названию
+            final exercise = _exercises.firstWhere(
+              (e) => e.title == h.exerciseName,
+              orElse:
+                  () => Exercise(
+                    id: null,
+                    title: '',
+                    generalDescription: '',
+                    suitableFor: [],
+                    maxPainLevel: 0,
+                    steps: [],
+                    tags: [],
+                  ),
+            );
+
+            // Проверяем, есть ли пересечение с подтипами выбранной категории травм
+            final categorySpecifics =
+                injuryCategories[_selectedInjuryType] ?? [];
+            return exercise.suitableFor.any(
+              (suitable) => categorySpecifics.contains(suitable),
+            );
+          }).toList();
     }
 
     // Фильтрация по периоду времени
@@ -682,7 +702,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                   ? _buildErrorState()
                   : CustomScrollView(
                     key: ValueKey(
-                      'history_list_${_selectedTimePeriod}_${_selectedInjuryType}',
+                      'history_list_${_selectedTimePeriod}_$_selectedInjuryType',
                     ),
                     slivers: [
                       // Календарь
