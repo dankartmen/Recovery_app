@@ -1,3 +1,4 @@
+import 'package:auth_test/controllers/login_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/repositories/questionnaire_repository.dart';
@@ -17,10 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
-  bool _autoLoginAttempted = false;
   bool _obscurePassword = true;
-  AuthService? _authService;
 
   Future<void> _navigateAfterLogin(AuthService authService) async {
     final questionnaireRepo = Provider.of<QuestionnaireRepository>(
@@ -45,47 +43,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _authService = Provider.of<AuthService>(context, listen: false);
-      _authService!.addListener(_onAuthChanged);
-      _authService!.initialize();
-    });
-  }
-
-  void _onAuthChanged() async {
-    if (_authService!.currentUser != null && !_autoLoginAttempted) {
-      _autoLoginAttempted = true;
-      final questionnaire = await _authService!.fetchQuestionnaire();
-      if (!mounted) return;
-
-      if (questionnaire != null) {
-        Navigator.pushReplacementNamed(
-          context,
-          '/home',
-          arguments: questionnaire,
-        );
-      } else {
-        Navigator.pushReplacementNamed(context, '/questionnaire');
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _authService?.removeListener(_onAuthChanged);
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final authController = Provider.of<AuthController>(context);
 
-    if (authService.isLoading || _autoLoginAttempted) {
+    if (authService.isLoading) {
       return Scaffold(
         body: Container(
           decoration: const BoxDecoration(color: healthBackgroundColor),
@@ -195,6 +159,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 return null;
                               },
                             ),
+
+                            if (authController.errorMassage != null)
+                              Text(authController.errorMassage!,style: TextStyle(color: Colors.red),),
+
                             const SizedBox(height: 16),
 
                             // Кнопка "Забыли пароль?"
@@ -221,9 +189,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               height: 50,
                               child: ElevatedButton(
                                 onPressed:
-                                    _isLoading
+                                    authController.isLoading
                                         ? null
-                                        : () => _login(authService),
+                                        : () => authController.login(_usernameController.text,_passwordController.text),       
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: healthPrimaryColor,
                                   shape: RoundedRectangleBorder(
@@ -234,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                                 child:
-                                    _isLoading
+                                    authController.isLoading
                                         ? const CircularProgressIndicator(
                                           color: Colors.white,
                                           strokeWidth: 3,
@@ -318,49 +286,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _login(AuthService authService) async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      await authService.login(
-        _usernameController.text,
-        _passwordController.text,
-      );
-      await _navigateAfterLogin(authService);
-    } catch (e) {
-      String errorMessage;
-      if (e.toString().contains('Connection reset by peer')) {
-        errorMessage =
-            'Ошибка соединения с сервером. Проверьте интернет и попробуйте снова.';
-      } else if (e.toString().contains('ClientException')) {
-        errorMessage = 'Не удалось подключиться к серверу. Попробуйте позже.';
-      } else if (e.toString().contains('401')) {
-        errorMessage = 'Неверное имя пользователя или пароль.';
-      } else {
-        errorMessage = 'Произошла ошибка: $e';
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
   }
 }
