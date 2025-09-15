@@ -190,7 +190,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
               // Выбор пола
               DropdownButtonFormField<String>(
-                value: _gender.isNotEmpty ? _gender : null,
+                initialValue: _gender.isNotEmpty ? _gender : null,
                 decoration: buildHealthInputDecoration('Пол'),
                 items:
                     ['Мужской', 'Женский'].map((String value) {
@@ -251,7 +251,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
               // Выбор типа травмы
               DropdownButtonFormField<String>(
-                value: _mainInjuryType.isNotEmpty ? _mainInjuryType : null,
+                initialValue: _mainInjuryType.isNotEmpty ? _mainInjuryType : null,
                 decoration: buildHealthInputDecoration(
                   'Основной тип травмы/операции',
                 ),
@@ -276,7 +276,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
               // Выбор конкретной травмы
               if (_mainInjuryType.isNotEmpty)
                 DropdownButtonFormField<String>(
-                  value: _specificInjury,
+                  initialValue: _specificInjury,
                   decoration: buildHealthInputDecoration(
                     'Конкретный вид травмы',
                   ),
@@ -361,7 +361,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
               // Время на тренировки
               DropdownButtonFormField<String>(
-                value: _trainingTime.isNotEmpty ? _trainingTime : null,
+                initialValue: _trainingTime.isNotEmpty ? _trainingTime : null,
                 decoration: buildHealthInputDecoration('Время на тренировки'),
                 items:
                     [

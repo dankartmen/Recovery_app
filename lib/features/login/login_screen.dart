@@ -1,7 +1,6 @@
 import 'package:auth_test/controllers/login_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../data/repositories/questionnaire_repository.dart';
 import '../../services/auth_service.dart';
 import '../../styles/style.dart';
 import '../register/register_screen.dart';
@@ -19,30 +18,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-
-  Future<void> _navigateAfterLogin(AuthService authService) async {
-    final questionnaireRepo = Provider.of<QuestionnaireRepository>(
-      context,
-      listen: false,
-    );
-    final questionnaire = await authService.fetchQuestionnaire();
-    if (!mounted) return;
-
-    if (questionnaire != null) {
-      await questionnaireRepo.saveQuestionnaire(questionnaire);
-
-      if (!mounted) return;
-
-      Navigator.pushReplacementNamed(
-        context,
-        '/home',
-        arguments: questionnaire,
-      );
-    } else {
-      Navigator.pushReplacementNamed(context, '/questionnaire');
-    }
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 onPressed:
                                     authController.isLoading
                                         ? null
-                                        : () => authController.login(_usernameController.text,_passwordController.text),       
+                                        : () => authController.login(_usernameController.text,_passwordController.text, context),       
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: healthPrimaryColor,
                                   shape: RoundedRectangleBorder(

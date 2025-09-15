@@ -1,4 +1,5 @@
 import 'package:auth_test/controllers/login_controller.dart';
+import 'package:auth_test/controllers/registration_controller.dart';
 import 'package:auth_test/data/models/exercise_list_model.dart';
 import 'package:auth_test/data/repositories/history_repository.dart';
 import 'package:auth_test/features/login/login_screen.dart';
@@ -7,7 +8,6 @@ import 'package:auth_test/services/exercise_service.dart';
 import 'package:auth_test/styles/style.dart';
 import 'package:flutter/material.dart';
 import 'package:auth_test/features/sounds/sound_service.dart';
-import 'package:path/path.dart';
 //import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'adapters/exercise_adapter.dart';
@@ -52,6 +52,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider<AuthService>.value(value: authService),
         ChangeNotifierProvider<AuthController>(create: (context) => AuthController(authService)),
+        ChangeNotifierProvider<RegistrationController>(create: (context) => RegistrationController(authService)),
         ChangeNotifierProvider<HistoryModel>.value(value: historyModel),
         ChangeNotifierProvider<TrainingCalendarModel>.value(
           value: trainingCalendarModel,

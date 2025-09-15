@@ -5,6 +5,7 @@ import 'package:auth_test/data/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/models/training_schedule.dart';
@@ -219,6 +220,27 @@ class AuthService with ChangeNotifier {
       setLoading(false);
     }
   }
+ 
+  Future<void> handlePostLoginNavigation(BuildContext context) async {
+    // Загружаем анкету
+    final questionnaire = await fetchQuestionnaire();
+    if (!context.mounted) return;
+
+    if (questionnaire != null) {
+      final questionnaireRepo = QuestionnaireRepository();
+      await questionnaireRepo.saveQuestionnaire(questionnaire);
+      if (!context.mounted) return;
+      
+      Navigator.pushReplacementNamed(
+        context,
+        '/home',
+        arguments: questionnaire,
+      );
+    } else {
+      Navigator.pushReplacementNamed(context, '/questionnaire');
+    }
+  }
+
 
   /// Сброс пароля пользователя
   /// Принимает:

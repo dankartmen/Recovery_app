@@ -8,14 +8,17 @@ class AuthController with ChangeNotifier{
 
   AuthController(this._authService);
 
-  Future<void> login(String username, String password) async {
+  
+  Future<void> login(String username, String password, BuildContext context) async {
     isLoading = true;
     errorMassage = null;
     notifyListeners();
 
     try {
-      await _authService.login(username,password,);
+      await _authService.login(username,password);
       errorMassage = null;
+      if(!context.mounted) return;
+      await _authService.handlePostLoginNavigation(context);
     } catch (e) {
       errorMassage = e.toString();
     } finally {

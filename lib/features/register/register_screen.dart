@@ -1,8 +1,6 @@
+import 'package:auth_test/controllers/registration_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../data/models/exercise_list_model.dart';
-import '../../data/models/history_model.dart';
-import '../../data/models/training_calendar_model.dart';
 import '../../services/auth_service.dart';
 import '../../styles/style.dart';
 
@@ -31,9 +29,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// Контроллер для поля подтверждения пароля
   final _confirmPasswordController = TextEditingController();
 
-  /// Флаг состояния загрузки при регистрации
-  bool _isLoading = false;
-
   /// Флаг отображения/скрытия пароля
   bool _obscurePassword = true;
 
@@ -43,7 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-
+    final registrationController = Provider.of<RegistrationController>(context);
     return Scaffold(
       appBar: buildAppBar('Регистрация'),
       body: Container(
@@ -218,7 +213,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               height: 50,
                               child: ElevatedButton(
                                 onPressed:
-                                    _isLoading ? null : () => _register(),
+                                    registrationController.isLoading ? null : () => registrationController.register(_usernameController.text, _passwordController.text, context),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: healthPrimaryColor,
                                   shape: RoundedRectangleBorder(
@@ -229,7 +224,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                 ),
                                 child:
-                                    _isLoading
+                                    registrationController.isLoading
                                         ? const CircularProgressIndicator(
                                           color: Colors.white,
                                           strokeWidth: 3,
@@ -280,71 +275,5 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
-  }
-
-  /// Обработка регистрации пользователя
-  /// Выполняет валидацию формы, отправку данных на сервер и инициализацию данных пользователя
-  /// Выбрасывает исключение:
-  /// - при ошибках сети, сервера или валидации данных
-  Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final user = await authService.register(
-        _usernameController.text,
-        _passwordController.text,
-      );
-
-      if (user != null) {
-        // Загружаем анкету пользователя
-        final questionnaire = await authService.fetchQuestionnaire();
-        if (!mounted) return;
-
-        if (questionnaire != null) {
-          // Инициализируем календарь тренировок
-          final calendarModel = Provider.of<TrainingCalendarModel>(
-            context,
-            listen: false,
-          );
-          final historyModel = Provider.of<HistoryModel>(
-            context,
-            listen: false,
-          );
-          final exerciseListModel = Provider.of<ExerciseListModel>(
-            context,
-            listen: false,
-          );
-
-          calendarModel.initialize(
-            authService,
-            historyModel,
-            exerciseListModel,
-          );
-          await calendarModel.generateAndSaveSchedule(questionnaire);
-          if (!mounted) return;
-
-          // После успешной регистрации можно перейти на нужный экран
-          Navigator.pushReplacementNamed(
-            context,
-            '/home',
-            arguments: questionnaire,
-          );
-        } else {
-          // Если анкета не найдена, переходим на экран заполнения анкеты
-          Navigator.pushReplacementNamed(context, 'questionnaire');
-        }
-      }
-    } catch (e) {
-      // Обработка ошибок
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка регистрации: $e')));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 }
