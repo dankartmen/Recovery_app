@@ -14,6 +14,7 @@ import 'adapters/exercise_adapter.dart';
 import 'adapters/time_of_day_adapter.dart';
 import 'adapters/training_adapter.dart';
 import 'adapters/training_schedule_adapter.dart';
+import 'controllers/questionnaire_controller.dart';
 import 'data/models/history_model.dart';
 import 'data/models/home_screen_model.dart';
 import 'data/models/sound.dart';
@@ -62,6 +63,12 @@ void main() async {
         ChangeNotifierProvider<ExerciseListModel>(
           create: (_) => ExerciseListModel(exerciseService: exerciseService),
         ),
+        ChangeNotifierProxyProvider2<AuthService, QuestionnaireRepository, QuestionnaireController>(
+          create: (_) => QuestionnaireController(null, null),
+          update: (_, authService, repository, controller) => 
+              QuestionnaireController(authService,repository),
+        ),
+
       ],
       child: MyApp(),
     ),

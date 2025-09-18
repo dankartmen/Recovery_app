@@ -156,6 +156,18 @@ class EditableRecoveryData {
     required this.trainingTime,
   });
 
+  static EditableRecoveryData empty(){
+    return EditableRecoveryData(
+      name: '',
+      gender: '',
+      weight: 0.0,
+      height: 0.0,
+      mainInjuryType: '',
+      specificInjury: '',
+      painLevel: 0,
+      trainingTime: '',
+    );
+  }
   factory EditableRecoveryData.fromRecoveryData(RecoveryData data) {
     return EditableRecoveryData(
       id: data.id,
