@@ -1,83 +1,108 @@
 import 'package:auth_test/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../data/models/exercise_list_model.dart';
-import '../data/models/history_model.dart';
-import '../data/models/training_calendar_model.dart';
 
 class RegistrationController with ChangeNotifier{
   final AuthService _authService;
   bool isLoading = false;
   String? errorMassage;
+  String? usernameError;
+  String? passwordError;
+  String? confirmPasswordError;
+  bool obscurePassword = true;
+  bool obscureConfirmPassword = true;
 
   RegistrationController(this._authService);
 
+  void togglePasswordVisibility() {
+    obscurePassword = !obscurePassword;
+    notifyListeners();
+  }
+
+  void toggleConfirmPasswordVisibility() {
+    obscureConfirmPassword = !obscureConfirmPassword;
+    notifyListeners();
+  }
+
+  void clearErrors() {
+    errorMassage = null;
+    usernameError = null;
+    passwordError = null;
+    confirmPasswordError = null;
+    notifyListeners();
+  }
+
+  // Validation
+  String? validateUsername(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Введите имя пользователя';
+    }
+    if (value.length < 3) {
+      return 'Имя пользователя должно быть не менее 3 символов';
+    }
+    return null;
+  }
+
+  String? validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Введите пароль';
+    }
+    if (value.length < 8) {
+      return 'Пароль должен быть не менее 8 символов';
+    }
+    if (!value.contains(RegExp(r'[A-Z]'))) {
+      return 'Добавьте заглавную букву (A-Z)';
+    }
+    if (!value.contains(RegExp(r'[a-z]'))) {
+      return 'Добавьте строчную букву (a-z)';
+    }
+    if (!value.contains(RegExp(r'[0-9]'))) {
+      return 'Добавьте цифру (0-9)';
+    }
+    if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      return 'Добавьте специальный символ';
+    }
+    return null;
+  }
+
+  String? validateConfirmPassword(String? value, String password) {
+    final passwordError = validatePassword(value);
+    if (passwordError != null) return passwordError;
+    if (value != password) {
+      return 'Пароли не совпадают';
+    }
+    return null;
+  }
   /// Обработка регистрации пользователя
   /// Выполняет валидацию формы, отправку данных на сервер и инициализацию данных пользователя
   /// Выбрасывает исключение:
   /// - при ошибках сети, сервера или валидации данных
-  Future<void> register(String username, String password, BuildContext context) async {
-    isLoading = true;
-    errorMassage = null;
+  Future<bool> register(String username, String password, String confirmPassword) async {
+    clearErrors();
     try {
-      final user = await _authService.register(
+      usernameError = validateUsername(username);
+      passwordError = validatePassword(password);
+      confirmPasswordError = validateConfirmPassword(confirmPassword, password);
+
+      if (usernameError != null || passwordError != null || confirmPasswordError != null){
+        notifyListeners();
+        return false;
+      }
+
+      isLoading = true;
+      notifyListeners();
+
+      await _authService.register(
         username,password
       );
-
-      if (user != null) {
-        // Загружаем анкету пользователя
-        final questionnaire = await _authService.fetchQuestionnaire();
-        if (!context.mounted) return;
-
-        if (questionnaire != null) {
-          // Инициализируем календарь тренировок
-          final calendarModel = Provider.of<TrainingCalendarModel>(
-            context,
-            listen: false,
-          );
-          final historyModel = Provider.of<HistoryModel>(
-            context,
-            listen: false,
-          );
-          final exerciseListModel = Provider.of<ExerciseListModel>(
-            context,
-            listen: false,
-          );
-
-          calendarModel.initialize(
-            _authService,
-            historyModel,
-            exerciseListModel,
-          );
-          await calendarModel.generateAndSaveSchedule(questionnaire);
-          if (!context.mounted) return;
-
-          // После успешной регистрации можно перейти на нужный экран
-          Navigator.pushReplacementNamed(
-            context,
-            '/home',
-            arguments: questionnaire,
-          );
-        } else {
-          // Если анкета не найдена, переходим на экран заполнения анкеты
-          Navigator.pushReplacementNamed(context, '/questionnaire');
-        }
-      }
+      errorMassage = null;
+      return true;
+      
     } catch (e) {
-      // Обработка ошибок
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка регистрации: $e')));
+      errorMassage = e.toString();
+      return false;
     } finally {
       isLoading = false;
-      errorMassage = null;
       notifyListeners();
     }
-  }
-  void cleanError(){
-    errorMassage = null;
-    notifyListeners();
   }
 }

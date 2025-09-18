@@ -1,7 +1,6 @@
 import 'package:auth_test/controllers/registration_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../services/auth_service.dart';
 import '../../styles/style.dart';
 
 /// {@template register_screen}
@@ -18,7 +17,6 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   /// Ключ для валидации формы регистрации
-  final _formKey = GlobalKey<FormState>();
 
   /// Контроллер для поля ввода имени пользователя
   final _usernameController = TextEditingController();
@@ -29,15 +27,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// Контроллер для поля подтверждения пароля
   final _confirmPasswordController = TextEditingController();
 
-  /// Флаг отображения/скрытия пароля
-  bool _obscurePassword = true;
-
-  /// Флаг отображения/скрытия подтверждения пароля
-  bool _obscureConfirmPassword = true;
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
     final registrationController = Provider.of<RegistrationController>(context);
     return Scaffold(
       appBar: buildAppBar('Регистрация'),
@@ -84,126 +76,61 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Form(
-                        key: _formKey,
                         child: Column(
                           children: [
-                            if (authService.errorMessage != null)
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                margin: const EdgeInsets.only(bottom: 20),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade50,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.error, color: Colors.red),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        authService.errorMessage!,
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
                             // Поле имени пользователя
                             TextFormField(
                               controller: _usernameController,
                               decoration: buildHealthInputDecoration(
                                 'Имя пользователя',
+                                registrationController.usernameError,
                                 icon: Icons.person_outline,
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Введите имя пользователя';
-                                }
-                                return null;
-                              },
+                              onChanged: (value) => registrationController.clearErrors(),
                             ),
                             const SizedBox(height: 20),
 
                             // Поле пароля
                             TextFormField(
                               controller: _passwordController,
-                              obscureText: _obscurePassword,
+                              obscureText: registrationController.obscurePassword,
                               decoration: buildHealthInputDecoration(
                                 'Пароль',
+                                registrationController.passwordError,
                                 icon: Icons.lock_outline,
                               ).copyWith(
                                 suffixIcon: IconButton(
                                   icon: Icon(
-                                    _obscurePassword
+                                    registrationController.obscurePassword
                                         ? Icons.visibility_off
                                         : Icons.visibility,
                                     color: healthSecondaryColor,
                                   ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscurePassword = !_obscurePassword;
-                                    });
-                                  },
+                                  onPressed: () => registrationController.togglePasswordVisibility()
                                 ),
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Введите пароль';
-                                }
-                                if (value.length < 8) {
-                                  return 'Пароль должен быть не менее 8 символов';
-                                }
-                                if (!value.contains(RegExp(r'[A-Z]'))) {
-                                  return 'Добавьте заглавную букву (A-Z)';
-                                }
-                                if (!value.contains(RegExp(r'[a-z]'))) {
-                                  return 'Добавьте строчную букву (a-z)';
-                                }
-                                if (!value.contains(RegExp(r'[0-9]'))) {
-                                  return 'Добавьте цифру (0-9)';
-                                }
-                                if (!value.contains(
-                                  RegExp(r'[!@#$%^&*(),.?":{}|<>]'),
-                                )) {
-                                  return 'Добавьте специальный символ';
-                                }
-                                return null;
-                              },
                             ),
                             const SizedBox(height: 20),
 
                             // Подтверждение пароля
                             TextFormField(
                               controller: _confirmPasswordController,
-                              obscureText: _obscureConfirmPassword,
+                              obscureText: registrationController.obscureConfirmPassword,
                               decoration: buildHealthInputDecoration(
                                 'Подтвердите пароль',
+                                registrationController.confirmPasswordError,
                                 icon: Icons.lock_reset,
                               ).copyWith(
                                 suffixIcon: IconButton(
                                   icon: Icon(
-                                    _obscureConfirmPassword
+                                    registrationController.obscureConfirmPassword
                                         ? Icons.visibility_off
                                         : Icons.visibility,
                                     color: healthSecondaryColor,
                                   ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscureConfirmPassword =
-                                          !_obscureConfirmPassword;
-                                    });
-                                  },
+                                  onPressed: () => registrationController.toggleConfirmPasswordVisibility()
                                 ),
                               ),
-                              validator: (value) {
-                                if (value != _passwordController.text) {
-                                  return 'Пароли не совпадают';
-                                }
-                                return null;
-                              },
                             ),
                             const SizedBox(height: 30),
 
@@ -213,7 +140,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               height: 50,
                               child: ElevatedButton(
                                 onPressed:
-                                    registrationController.isLoading ? null : () => registrationController.register(_usernameController.text, _passwordController.text, context),
+                                    registrationController.isLoading ? null : () async { 
+                                      final success = await registrationController.register(_usernameController.text, _passwordController.text, _confirmPasswordController.text);
+                                      if (success && context.mounted){
+                                        Navigator.pushReplacementNamed(context, '/questionnaire');
+                                      }
+                                    },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: healthPrimaryColor,
                                   shape: RoundedRectangleBorder(
@@ -239,30 +171,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         ),
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            if(registrationController.errorMassage != null)
+                              Text(registrationController.errorMassage!, style: TextStyle(color: Colors.red),)
 
-                            // Ссылка на вход
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Уже есть аккаунт? ',
-                                  style: TextStyle(
-                                    color: healthSecondaryTextColor,
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text(
-                                    'Войти',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: healthPrimaryColor,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),

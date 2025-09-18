@@ -121,10 +121,17 @@ class MyApp extends StatelessWidget {
       startScreen = FutureBuilder<RecoveryData?>(
         future: authService.fetchQuestionnaire(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return Scaffold(body: Center(child: CircularProgressIndicator()));
           }
-          return HomeScreen(recoveryData: snapshot.data!);
+          if (snapshot.hasError) {
+            debugPrint('Ошибка загрузки анкеты: ${snapshot.error}');
+            return LoginScreen();
+          }
+          if (snapshot.hasData && snapshot.data != null) {
+            return HomeScreen(recoveryData: snapshot.data!);
+          }
+          return QuestionnaireScreen();
         },
       );
     } else {

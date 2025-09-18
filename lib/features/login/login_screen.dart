@@ -94,6 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               controller: _usernameController,
                               decoration: buildHealthInputDecoration(
                                 'Имя пользователя',
+                                null,
                                 icon: Icons.person_outline,
                               ),
                               validator: (value) {
@@ -111,6 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               obscureText: _obscurePassword,
                               decoration: buildHealthInputDecoration(
                                 'Пароль',
+                                null,
                                 icon: Icons.lock_outline,
                               ).copyWith(
                                 suffixIcon: IconButton(

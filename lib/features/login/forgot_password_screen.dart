@@ -89,6 +89,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           controller: _usernameController,
                           decoration: buildHealthInputDecoration(
                             'Имя пользователя',
+                            null,
                             icon: Icons.person_outline,
                           ),
                           validator: (value) {

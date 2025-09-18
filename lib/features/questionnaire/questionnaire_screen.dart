@@ -177,7 +177,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
               // Поле ФИО
               TextFormField(
                 initialValue: _name,
-                decoration: buildHealthInputDecoration('ФИО'),
+                decoration: buildHealthInputDecoration('ФИО',null),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Поле обязательно для заполнения';
@@ -191,7 +191,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
               // Выбор пола
               DropdownButtonFormField<String>(
                 initialValue: _gender.isNotEmpty ? _gender : null,
-                decoration: buildHealthInputDecoration('Пол'),
+                decoration: buildHealthInputDecoration('Пол',null),
                 items:
                     ['Мужской', 'Женский'].map((String value) {
                       return DropdownMenuItem<String>(
@@ -211,7 +211,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
                     child: TextFormField(
                       initialValue: _weight > 0 ? _weight.toString() : '',
                       keyboardType: TextInputType.number,
-                      decoration: buildHealthInputDecoration('Вес (кг)'),
+                      decoration: buildHealthInputDecoration('Вес (кг)', null,),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Обязательно';
@@ -229,7 +229,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
                     child: TextFormField(
                       initialValue: _height > 0 ? _height.toString() : '',
                       keyboardType: TextInputType.number,
-                      decoration: buildHealthInputDecoration('Рост (см)'),
+                      decoration: buildHealthInputDecoration('Рост (см)',null,),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Обязательно';
@@ -254,6 +254,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
                 initialValue: _mainInjuryType.isNotEmpty ? _mainInjuryType : null,
                 decoration: buildHealthInputDecoration(
                   'Основной тип травмы/операции',
+                  null,
                 ),
                 items:
                     injuryCategories.keys.map((String key) {
@@ -278,7 +279,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: _specificInjury,
                   decoration: buildHealthInputDecoration(
-                    'Конкретный вид травмы',
+                    'Конкретный вид травмы',null,
                   ),
                   isExpanded: true,
                   items:
@@ -362,7 +363,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
               // Время на тренировки
               DropdownButtonFormField<String>(
                 initialValue: _trainingTime.isNotEmpty ? _trainingTime : null,
-                decoration: buildHealthInputDecoration('Время на тренировки'),
+                decoration: buildHealthInputDecoration('Время на тренировки',null,),
                 items:
                     [
                       '15 минут/день',

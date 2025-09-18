@@ -60,9 +60,10 @@ ElevatedButton primaryButton({
 }
 
 // Стиль текстовых полей для медицинской темы
-InputDecoration buildHealthInputDecoration(String labelText, {IconData? icon}) {
+InputDecoration buildHealthInputDecoration(String labelText,String? errorText, {IconData? icon}) {
   return InputDecoration(
     labelText: labelText,
+    errorText: errorText,
     labelStyle: const TextStyle(color: healthSecondaryTextColor),
     prefixIcon:
         icon != null

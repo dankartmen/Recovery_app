@@ -97,6 +97,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           obscureText: _obscurePassword,
                           decoration: buildHealthInputDecoration(
                             'Новый пароль',
+                            null,
                             icon: Icons.lock_outline,
                           ).copyWith(
                             suffixIcon: IconButton(
@@ -144,7 +145,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           controller: _confirmController,
                           obscureText: _obscureConfirm,
                           decoration: buildHealthInputDecoration(
-                            'Подтвердите пароль',
+                            'Подтвердите пароль', null,
                             icon: Icons.lock_reset,
                           ).copyWith(
                             suffixIcon: IconButton(

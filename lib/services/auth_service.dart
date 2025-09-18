@@ -100,7 +100,7 @@ class AuthService with ChangeNotifier {
         _currentUser = User.fromJson(jsonDecode(response.body));
         debugPrint('Автоматический вход успешен');
         await _saveSession();
-        notifyListeners(); // Только уведомляем слушателей!
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Ошибка автоматического входа: $e');
@@ -290,38 +290,19 @@ class AuthService with ChangeNotifier {
   /// Выбрасывает исключение:
   /// - при ошибках сети, сервера или отсутствии аутентификации
   Future<RecoveryData?> fetchQuestionnaire() async {
-    if (_currentUser == null || _username == null || _password == null) {
-      debugPrint("Ошибка: Пользователь не аутентифицирован");
-      return null;
-    }
+  if (_currentUser == null) return null;
 
-    try {
-      debugPrint("Запрос анкеты для user_id: ${_currentUser!.id}");
-
-      final response = await http.get(
-        Uri.parse('$_baseUrl/users/${_currentUser!.id}/questionnaire'),
-        headers: {'Authorization': getBasicAuthHeader()},
-      );
-
-      debugPrint("Статус ответа анкеты: ${response.statusCode}");
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        debugPrint("Полученные данные анкеты: $data");
-        final questionnaireRepo = QuestionnaireRepository();
-        questionnaireRepo.saveQuestionnaire(RecoveryData.fromJson(data));
-        return RecoveryData.fromJson(data);
-      } else if (response.statusCode == 404) {
-        debugPrint("Анкета не найдена");
-        return null; // Анкета не найдена
-      } else {
-        throw Exception('Ошибка сервера: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('Ошибка при загрузке анкеты: $e');
-      rethrow;
-    }
+  try {
+    // Используем репозиторий вместо прямой HTTP-логики
+    return await QuestionnaireRepository().fetchQuestionnaire(
+      getBasicAuthHeader(), 
+      _currentUser!.id!
+    );
+  } catch (e) {
+    debugPrint('Ошибка при загрузке анкеты: $e');
+    rethrow;
   }
+}
 
   /// Установка состояния загрузки
   /// Принимает:
