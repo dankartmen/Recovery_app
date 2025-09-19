@@ -149,7 +149,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
             // Выбор типа травмы
             DropdownButtonFormField<String>(
-              value: controller.mainInjuryType.isNotEmpty ? controller.mainInjuryType : null,
+              initialValue: controller.mainInjuryType.isNotEmpty ? controller.mainInjuryType : null,
               decoration: buildHealthInputDecoration(
                 'Основной тип травмы/операции',
                 controller.getErrorForField('mainInjuryType'),
@@ -170,7 +170,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
             // Выбор конкретной травмы
             if (controller.mainInjuryType.isNotEmpty)
               DropdownButtonFormField<String>(
-                value: controller.specificInjury,
+                initialValue: controller.specificInjury,
                 decoration: buildHealthInputDecoration(
                   'Конкретный вид травмы',controller.getErrorForField('specificInjury'),
                 ),
