@@ -4,17 +4,35 @@ import 'package:flutter/material.dart';
 
 import '../data/models/models.dart';
 
+/// {@template questionnaire_controller}
+/// Контроллер для управления данными анкеты пользователя.
+/// Обеспечивает валидацию, сохранение и синхронизацию данных анкеты.
+/// {@endtemplate}
 class QuestionnaireController with ChangeNotifier{
+  /// Сервис аутентификации для выполнения операций входа
   final AuthService? _authService;
-  final QuestionnaireRepository? _questionnaireRepo;
-  QuestionnaireController(this._authService, this._questionnaireRepo);
 
+  /// Репозиторий для работы с данными анкеты
+  final QuestionnaireRepository? _questionnaireRepo;
+
+  /// Данные анкеты в редактируемом формате
   EditableRecoveryData _formData = EditableRecoveryData.empty();
 
+  QuestionnaireController(this._authService, this._questionnaireRepo);
+
+  /// Флаг состояния загрузки данных анкеты
   bool isLoading = false;
+
+  /// Флаг состояния сохранения данных анкеты
   bool isSaving = false;
+
+  /// Сообщение об ошибке при операциях с анкетой 
   String? errorMessage;
+
+  /// Флаг согласия с политикой конфиденциальности
   bool consentGiven = false;
+
+  /// Ошибки валидации полей анкеты
   Map<String, String> fieldErrors= {}; 
 
   // Геттеры для доступа к данным формы
@@ -28,11 +46,18 @@ class QuestionnaireController with ChangeNotifier{
   int get painLevel => _formData.painLevel;
   String get trainingTime => _formData.trainingTime;
 
-  // Получение ошибки для конкретного поля
+  /// Получение ошибки для конкретного поля анкеты
+  /// Принимает:
+  /// - [fieldName] - имя поля для получения ошибки
+  /// Возвращает:
+  /// - текст ошибки или null если ошибок нет
   String? getErrorForField(String fieldName) {
     return fieldErrors[fieldName];
   }
 
+  /// Инициализация контроллера данными анкеты
+  /// Принимает:
+  /// - [initialData] - начальные данные анкеты или null
   Future<void> initialize(RecoveryData? initialData) async{
     isLoading = true;
     notifyListeners();
@@ -59,7 +84,9 @@ class QuestionnaireController with ChangeNotifier{
     }
   }
 
-  // Методы обновления полей
+  /// Обновление определенного поля пользователя в анкете
+  /// Принимает:
+  /// - [value] - новое значение имени
   void updateName(String value) {
     _formData.name = value;
     _clearFieldError('name');
@@ -131,7 +158,9 @@ class QuestionnaireController with ChangeNotifier{
     }
   }
 
-  // валидация полей
+  /// Валидация всех полей анкеты
+  /// Возвращает:
+  /// - true если все поля валидны, false если есть ошибки
   bool validate(){
     fieldErrors.clear();
 
@@ -172,6 +201,9 @@ class QuestionnaireController with ChangeNotifier{
     return fieldErrors.isEmpty;
   }
   
+  /// Сохранение анкеты пользователя
+  /// Возвращает:
+  /// - true если сохранение успешно, false при ошибке
   Future<bool> saveQuestionnaire() async{
     if(!validate()){
       return false;
@@ -200,7 +232,9 @@ class QuestionnaireController with ChangeNotifier{
     }
   }
 
-  //Получение списка конкретных травм для выбранной категории
+  /// Получение списка конкретных травм для выбранной категории
+  /// Возвращает:
+  /// - список конкретных травм или пустой список если категория не выбрана
   List<String> getSpecificInjuries(){
     if(_formData.mainInjuryType.isEmpty){
       return [];

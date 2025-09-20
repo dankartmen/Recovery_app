@@ -1,28 +1,51 @@
 import 'package:auth_test/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
-class RegistrationController with ChangeNotifier{
+/// {@template registration_controller}
+/// Контроллер для управления процессом регистрации пользователя.
+/// Обеспечивает валидацию данных, управление состоянием и обработку ошибок.
+/// {@endtemplate}
+class RegistrationController with ChangeNotifier {
+  /// Сервис аутентификации для выполнения операций регистрации
   final AuthService _authService;
+
+  /// Флаг состояния загрузки при регистрации
   bool isLoading = false;
+
+  /// Общее сообщение об ошибке при регистрации
   String? errorMassage;
+
+  /// Ошибка валидации имени пользователя
   String? usernameError;
+
+  /// Ошибка валидации пароля
   String? passwordError;
+
+  /// Ошибка валидации подтверждения пароля
   String? confirmPasswordError;
+
+  /// Флаг отображения/скрытия пароля
   bool obscurePassword = true;
+
+  /// Флаг отображения/скрытия подтверждения пароля
   bool obscureConfirmPassword = true;
 
+  /// {@macro registration_controller}
   RegistrationController(this._authService);
 
+  /// Переключение видимости пароля
   void togglePasswordVisibility() {
     obscurePassword = !obscurePassword;
     notifyListeners();
   }
 
+  /// Переключение видимости подтверждения пароля
   void toggleConfirmPasswordVisibility() {
     obscureConfirmPassword = !obscureConfirmPassword;
     notifyListeners();
   }
 
+  /// Очистка всех ошибок валидации
   void clearErrors() {
     errorMassage = null;
     usernameError = null;
@@ -31,7 +54,11 @@ class RegistrationController with ChangeNotifier{
     notifyListeners();
   }
 
-  // Validation
+  /// Валидация имени пользователя
+  /// Принимает:
+  /// - [value] - значение имени пользователя для валидации
+  /// Возвращает:
+  /// - текст ошибки или null если валидация успешна
   String? validateUsername(String? value) {
     if (value == null || value.isEmpty) {
       return 'Введите имя пользователя';
@@ -42,6 +69,11 @@ class RegistrationController with ChangeNotifier{
     return null;
   }
 
+  /// Валидация пароля
+  /// Принимает:
+  /// - [value] - значение пароля для валидации
+  /// Возвращает:
+  /// - текст ошибки или null если валидация успешна
   String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Введите пароль';
@@ -64,6 +96,12 @@ class RegistrationController with ChangeNotifier{
     return null;
   }
 
+  /// Валидация подтверждения пароля
+  /// Принимает:
+  /// - [value] - значение подтверждения пароля
+  /// - [password] - оригинальный пароль для сравнения
+  /// Возвращает:
+  /// - текст ошибки или null если валидация успешна
   String? validateConfirmPassword(String? value, String password) {
     final passwordError = validatePassword(value);
     if (passwordError != null) return passwordError;
@@ -72,8 +110,14 @@ class RegistrationController with ChangeNotifier{
     }
     return null;
   }
+
   /// Обработка регистрации пользователя
-  /// Выполняет валидацию формы, отправку данных на сервер и инициализацию данных пользователя
+  /// Принимает:
+  /// - [username] - имя пользователя
+  /// - [password] - пароль пользователя
+  /// - [confirmPassword] - подтверждение пароля
+  /// Возвращает:
+  /// - true если регистрация успешна, false при ошибке
   /// Выбрасывает исключение:
   /// - при ошибках сети, сервера или валидации данных
   Future<bool> register(String username, String password, String confirmPassword) async {
@@ -83,7 +127,7 @@ class RegistrationController with ChangeNotifier{
       passwordError = validatePassword(password);
       confirmPasswordError = validateConfirmPassword(confirmPassword, password);
 
-      if (usernameError != null || passwordError != null || confirmPasswordError != null){
+      if (usernameError != null || passwordError != null || confirmPasswordError != null) {
         notifyListeners();
         return false;
       }
@@ -91,12 +135,9 @@ class RegistrationController with ChangeNotifier{
       isLoading = true;
       notifyListeners();
 
-      await _authService.register(
-        username,password
-      );
+      await _authService.register(username, password);
       errorMassage = null;
       return true;
-      
     } catch (e) {
       errorMassage = e.toString();
       return false;
