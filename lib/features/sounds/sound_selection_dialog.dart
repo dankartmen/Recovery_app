@@ -6,9 +6,16 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'sound_service.dart';
 
+/// {@template sound_selection_dialog}
+/// Диалог выбора звука для уведомлений или других целей.
+/// Позволяет выбирать между системными и пользовательскими звуками,
+/// предпрослушивать их и настраивать громкость.
+/// {@endtemplate}
 class SoundSelectionDialog extends StatefulWidget {
+  /// Текущий выбранный звук
   final Sound? currentSound;
 
+  /// {@macro sound_selection_dialog}
   const SoundSelectionDialog({super.key, this.currentSound});
 
   @override
@@ -16,13 +23,28 @@ class SoundSelectionDialog extends StatefulWidget {
 }
 
 class SoundSelectionDialogState extends State<SoundSelectionDialog> {
+  /// Выбранный звук в диалоге
   late Sound? _selectedSound;
+
+  /// Флаг воспроизведения звука
   bool _isPlaying = false;
+
+  /// Текущая позиция воспроизведения
   Duration _currentPosition = Duration.zero;
+
+  /// Общая длительность звука
   Duration? _totalDuration;
+
+  /// Текущий воспроизводимый звук
   Sound? _currentlyPlayingSound;
+
+  /// Подписка на событие завершения воспроизведения
   late StreamSubscription<void> _playerCompleteSubscription;
+
+  /// Подписка на изменение позиции воспроизведения
   late StreamSubscription<Duration> _positionChangedSubscription;
+
+  /// Подписка на изменение длительности звука
   late StreamSubscription<Duration> _durationChangedSubscription;
 
   @override
@@ -64,6 +86,10 @@ class SoundSelectionDialogState extends State<SoundSelectionDialog> {
     super.dispose();
   }
 
+  /// Воспроизведение звука
+  /// Принимает:
+  /// - [sound] - звук для воспроизведения
+  /// - [seek] - позиция для начала воспроизведения
   Future<void> _playSound(Sound sound, {Duration? seek}) async {
     if (sound.isAsset) {
       await SoundService.previewPlayer.play(
@@ -80,6 +106,9 @@ class SoundSelectionDialogState extends State<SoundSelectionDialog> {
     }
   }
 
+  /// Переключение воспроизведения/паузы для звука
+  /// Принимает:
+  /// - [sound] - звук для управления воспроизведением
   Future<void> _togglePlayPause(Sound sound) async {
     if (!mounted) return;
 
@@ -113,6 +142,7 @@ class SoundSelectionDialogState extends State<SoundSelectionDialog> {
     }
   }
 
+  /// Добавление пользовательского звука на Android
   Future<void> _addCustomSoundinAndriod() async {
     try {
       final result = await FilePicker.platform.pickFiles(type: FileType.audio);
@@ -180,6 +210,12 @@ class SoundSelectionDialogState extends State<SoundSelectionDialog> {
     );
   }
 
+  /// Построение списка звуков
+  /// Принимает:
+  /// - [title] - заголовок списка
+  /// - [isAsset] - флаг системных звуков
+  /// Возвращает:
+  /// - виджет списка звуков
   Widget _buildSoundList(String title, bool isAsset) {
     return FutureBuilder<List<Sound>>(
       future: SoundService.getAllSounds(),
@@ -211,6 +247,11 @@ class SoundSelectionDialogState extends State<SoundSelectionDialog> {
     );
   }
 
+  /// Построение элемента списка звуков
+  /// Принимает:
+  /// - [sound] - звук для отображения
+  /// Возвращает:
+  /// - виджет элемента списка
   Widget _buildSoundTile(Sound sound) {
     final isPlayingCurrent = _isPlaying && _currentlyPlayingSound?.path == sound.path;
 
@@ -283,6 +324,11 @@ class SoundSelectionDialogState extends State<SoundSelectionDialog> {
     );
   }
 
+  /// Форматирование длительности в строку
+  /// Принимает:
+  /// - [duration] - длительность для форматирования
+  /// Возвращает:
+  /// - отформатированную строку времени
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final minutes = twoDigits(duration.inMinutes.remainder(60));
@@ -290,6 +336,9 @@ class SoundSelectionDialogState extends State<SoundSelectionDialog> {
     return '$minutes:$seconds';
   }
 
+  /// Показ диалога настройки громкости
+  /// Принимает:
+  /// - [sound] - звук для настройки громкости
   void _showVolumeDialog(Sound sound) {
     showDialog(
       context: context,

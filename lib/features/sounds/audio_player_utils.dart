@@ -2,9 +2,21 @@ import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
+/// {@template audio_player_utils}
+/// Утилиты для воспроизведения аудиофайлов.
+/// Предоставляет статические методы для управления воспроизведением звуков.
+/// {@endtemplate}
 class AudioPlayerUtils {
+  /// Аудиоплеер для воспроизведения звуков
   static final AudioPlayer _player = AudioPlayer();
 
+   /// Воспроизведение звукового файла
+  /// Принимает:
+  /// - [path] - путь к аудиофайлу
+  /// - [isAsset] - флаг указывающий является ли файл ассетом приложения
+  /// - [volume] - громкость воспроизведения (от 0.0 до 1.0)
+  /// Выбрасывает исключение:
+  /// - при ошибках загрузки или воспроизведения файла
   static Future<void> playSound(
     String path, {
     bool isAsset = true,
@@ -28,6 +40,7 @@ class AudioPlayerUtils {
     }
   }
 
+  /// Остановка всех воспроизводимых звуков
   static Future<void> stopAllSounds() async {
     await _player.stop();
   }

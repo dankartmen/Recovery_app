@@ -1,3 +1,4 @@
+// sound_service.dart
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -8,10 +9,16 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/sound.dart';
 
-// Сервис для работы со звуками: воспроизведение, хранение, управление громкостью
+/// {@template sound_service}
+/// Сервис для работы со звуками: воспроизведение, хранение, управление громкостью.
+/// Обеспечивает управление как системными, так и пользовательскими звуками.
+/// {@endtemplate}
 class SoundService {
+  /// Аудиоплеер для предпрослушивания звуков
   static final AudioPlayer previewPlayer =
       AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+
+  /// Список системных звуков по умолчанию
   static final List<Sound> defaultSounds = [
     Sound(
       name: "Сигнал 1",
@@ -21,13 +28,21 @@ class SoundService {
     Sound(name: "Сигнал 2", path: "sounds/klubnichki.mp3", isAsset: true),
     Sound(name: "Сигнал 3", path: "sounds/pobeda.mp3", isAsset: true),
   ];
+
+  /// Список пользовательских звуков
   static List<Sound> customSounds = [];
 
-  // Инициализация пользовательских звуков
+  /// Инициализация сервиса звуков
+  /// Загружает пользовательские звуки из хранилища
   static Future<void> init() async {
     await _loadCustomSounds();
   }
 
+  /// Воспроизведение звука
+  /// Принимает:
+  /// - [sound] - звук для воспроизведения
+  /// Выбрасывает исключение:
+  /// - при ошибках загрузки или воспроизведения файла
   static Future<void> playSound(Sound sound) async {
     try {
       await previewPlayer.stop();
@@ -47,17 +62,23 @@ class SoundService {
     }
   }
 
-  // Получение всех звуков (стандартные + пользовательские)
+  /// Получение всех доступных звуков (системные + пользовательские)
+  /// Возвращает:
+  /// - список всех звуков
   static Future<List<Sound>> getAllSounds() async {
     return [...defaultSounds, ...customSounds];
   }
 
-  // Вспомогательные методы
+  /// Получение имени файла из пути
+  /// Принимает:
+  /// - [filePath] - путь к файлу
+  /// Возвращает:
+  /// - имя файла без расширения
   static String _getFileName(String filePath) {
     return filePath.split('/').last.split('.').first;
   }
 
-  // Загрузка пользовательских звуков из SharedPreferences
+  /// Загрузка пользовательских звуков из SharedPreferences
   static Future<void> _loadCustomSounds() async {
     final prefs = await SharedPreferences.getInstance();
     final customPaths = prefs.getStringList('customSounds') ?? [];
@@ -82,7 +103,11 @@ class SoundService {
     }
   }
 
-  // Добавление пользовательского звука
+  /// Добавление пользовательского звука
+  /// Принимает:
+  /// - [filePath] - путь к файлу звука
+  /// Возвращает:
+  /// - true если добавление успешно, false при ошибке
   static Future<bool> _addCustomSound(String filePath) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -112,7 +137,12 @@ class SoundService {
     }
   }
 
-  // Генерация уникального имени файла
+  /// Генерация уникального имени файла
+  /// Принимает:
+  /// - [dir] - директория для проверки уникальности
+  /// - [fileName] - исходное имя файла
+  /// Возвращает:
+  /// - уникальное имя файла
   static Future<String> _generateUniqueName(String dir, String fileName) async {
     var uniqueName = fileName;
     int counter = 1;
@@ -124,7 +154,11 @@ class SoundService {
     return uniqueName;
   }
 
-  // Добавление звука через файловый менеджер (Android)
+  /// Добавление звука через файловый менеджер (Android)
+  /// Принимает:
+  /// - [file] - файл для добавления
+  /// Возвращает:
+  /// - true если добавление успешно, false при ошибке или отмене
   static Future<bool> addCustomSoundinAndroid(PlatformFile file) async {
     if (!await Permission.storage.isGranted) {
       await Permission.storage.request();
@@ -137,12 +171,19 @@ class SoundService {
     return file.path != null ? await _addCustomSound(file.path!) : false;
   }
 
-  // Сохранение громкости звука
+  /// Сохранение громкости звука в настройках
+  /// Принимает:
+  /// - [sound] - звук для сохранения громкости
   static Future<void> saveVolume(Sound sound) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('${sound.path}.volume', sound.volume);
   }
 
+  /// Предпрослушивание звука
+  /// Принимает:
+  /// - [sound] - звук для предпрослушивания
+  /// Выбрасывает исключение:
+  /// - при ошибках загрузки или воспроизведения файла
   static Future<void> previewSound(Sound sound) async {
     try {
       await previewPlayer.stop();
