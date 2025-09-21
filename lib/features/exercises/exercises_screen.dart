@@ -245,25 +245,6 @@ class ExercisesScreenState extends State<ExercisesScreen> {
 
     return Column(
       children: [
-        // Статистика
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              _buildStatCard(
-                'Всего упражнений',
-                exercises.length.toString(),
-                healthPrimaryColor,
-              ),
-              const SizedBox(width: 12),
-              _buildStatCard(
-                'Показано',
-                filteredExercises.length.toString(),
-                healthSecondaryColor,
-              ),
-            ],
-          ),
-        ),
 
         // Список упражнений
         Expanded(
@@ -280,44 +261,6 @@ class ExercisesScreenState extends State<ExercisesScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  /// Построение карточки статистики
-  /// Принимает:
-  /// - [title] - заголовок статистики
-  /// - [value] - значение статистики
-  /// - [color] - цвет акцента карточки
-  /// Возвращает:
-  /// - виджет карточки статистики
-  Widget _buildStatCard(String title, String value, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(fontSize: 14, color: healthSecondaryTextColor),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

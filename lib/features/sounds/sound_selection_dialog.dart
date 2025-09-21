@@ -196,7 +196,15 @@ class SoundSelectionDialogState extends State<SoundSelectionDialog> {
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
             ),
-            ...sounds.map((sound) => _buildSoundTile(sound)),
+            RadioGroup(
+              onChanged: (Sound? newValue){
+                if (newValue != null){
+                  setState(() => _selectedSound = newValue);
+                }
+              },
+              groupValue: _selectedSound,
+              child: Column(children: sounds.map((sound) => _buildSoundTile(sound)).toList(),) 
+            )
           ],
         );
       },
@@ -204,59 +212,46 @@ class SoundSelectionDialogState extends State<SoundSelectionDialog> {
   }
 
   Widget _buildSoundTile(Sound sound) {
-    final isPlayingCurrent =
-        _isPlaying && _currentlyPlayingSound?.path == sound.path;
+    final isPlayingCurrent = _isPlaying && _currentlyPlayingSound?.path == sound.path;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Container(
-          padding: EdgeInsets.only(left: 0),
-          child: Row(
+        RadioListTile<Sound>(
+          value: sound,
+          contentPadding: const EdgeInsets.only(left: 0),
+          title: Text(
+            sound.originalName ?? sound.name,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: isPlayingCurrent ? FontWeight.w600 : FontWeight.normal,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          secondary: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Radio button - левый край
-              Radio<Sound>(
-                value: sound,
-                groupValue: _selectedSound,
-                onChanged: (s) => setState(() => _selectedSound = s),
+              IconButton(
+                icon: const Icon(Icons.volume_up),
+                onPressed: () {
+                  debugPrint('Открыт диалог громкости для ${sound.name}');
+                  _showVolumeDialog(sound);}
               ),
-
-              // Название мелодии - центр
-              Expanded(
-                child: Text(
-                  sound.originalName ?? sound.name,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight:
-                        isPlayingCurrent ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              IconButton(
+                icon: Icon(
+                  isPlayingCurrent ? Icons.pause : Icons.play_arrow,
                 ),
-              ),
-
-              // Кнопки управления - правый край
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.volume_up),
-                    onPressed: () => _showVolumeDialog(sound),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      isPlayingCurrent ? Icons.pause : Icons.play_arrow,
-                    ),
-                    onPressed: () => _togglePlayPause(sound),
-                  ),
-                ],
+                onPressed: () { 
+                  debugPrint('Воспроизведение/пауза для ${sound.name}');
+                  _togglePlayPause(sound);}
               ),
             ],
           ),
         ),
         if (isPlayingCurrent && _totalDuration != null)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               children: [
                 Slider(
