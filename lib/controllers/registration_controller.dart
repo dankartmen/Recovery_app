@@ -1,4 +1,4 @@
-import 'package:auth_test/services/auth_service.dart';
+import '../services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 /// {@template registration_controller}

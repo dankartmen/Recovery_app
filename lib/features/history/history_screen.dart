@@ -1,4 +1,4 @@
-import 'package:auth_test/data/models/exercise_list_model.dart';
+import '../../data/models/exercise_list_model.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter/material.dart';

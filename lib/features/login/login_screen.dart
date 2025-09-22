@@ -1,4 +1,4 @@
-import 'package:auth_test/controllers/login_controller.dart';
+import '../../controllers/login_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';

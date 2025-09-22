@@ -1,4 +1,4 @@
-import 'package:auth_test/controllers/questionnaire_controller.dart';
+import '../../controllers/questionnaire_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/models.dart';

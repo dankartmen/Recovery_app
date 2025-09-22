@@ -1,5 +1,5 @@
-import 'package:auth_test/data/repositories/questionnaire_repository.dart';
-import 'package:auth_test/services/auth_service.dart';
+import '../data/repositories/questionnaire_repository.dart';
+import '../services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 import '../data/models/models.dart';

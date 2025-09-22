@@ -1,5 +1,5 @@
-import 'package:auth_test/data/models/models.dart';
-import 'package:auth_test/services/exercise_service.dart';
+import 'models.dart';
+import '../../services/exercise_service.dart';
 import 'package:flutter/material.dart';
 
 class ExerciseListModel extends ChangeNotifier {
