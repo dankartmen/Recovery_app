@@ -78,8 +78,8 @@ class RegistrationController with ChangeNotifier {
     if (value == null || value.isEmpty) {
       return 'Введите пароль';
     }
-    if (value.length < 8) {
-      return 'Пароль должен быть не менее 8 символов';
+    if (value.length < 4) {
+      return 'Пароль должен быть не менее 4 символов';
     }
     if (!value.contains(RegExp(r'[A-Z]'))) {
       return 'Добавьте заглавную букву (A-Z)';

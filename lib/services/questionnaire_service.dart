@@ -10,7 +10,7 @@ import '../data/models/models.dart';
 /// {@endtemplate}
 class QuestionnaireService { 
   /// Базовый URL сервера для API анкет
-  final String _baseUrl = 'http://176.114.91.241:8000';
+  final String _baseUrl = 'http://195.225.111.85:8000';
 
   
   /// {@macro questionnaire_service}

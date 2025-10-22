@@ -15,14 +15,37 @@ class QuestionnaireScreen extends StatefulWidget {
 }
 
 class QuestionnaireScreenState extends State<QuestionnaireScreen> {
+  late TextEditingController _nameController;
+  late TextEditingController _weightController;
+  late TextEditingController _heightController;
 
   @override
   void initState() {
     super.initState();
+    // Инициализация контроллеров (пустые изначально)
+    _nameController = TextEditingController();
+    _weightController = TextEditingController();
+    _heightController = TextEditingController();
     WidgetsBinding.instance.addPostFrameCallback((_){
       final controller = Provider.of<QuestionnaireController>(context, listen: false);
       controller.initialize(widget.initialData);
+      // Синхронизируем контроллеры с данными после загрузки
+      _syncControllersWithData(controller);
     });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _weightController.dispose();
+    _heightController.dispose();
+    super.dispose();
+  }
+
+  void _syncControllersWithData(QuestionnaireController controller) {
+    _nameController.text = controller.name;
+    if (controller.weight > 0) _weightController.text = controller.weight.toStringAsFixed(0);
+    if (controller.height > 0) _heightController.text = controller.height.toStringAsFixed(0);
   }
 
   @override
@@ -103,8 +126,8 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
               children: [
                 Expanded(
                   child: TextFormField(
-                    initialValue: controller.weight > 0 ? controller.weight.toString() : '',
-                    keyboardType: TextInputType.number,
+                    controller: _weightController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: buildHealthInputDecoration('Вес (кг)', controller.getErrorForField('weight'),),
                     onChanged: (value) {
                       controller.updateWeight(value);
@@ -122,8 +145,8 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: TextFormField(
-                    initialValue: controller.height > 0 ? controller.height.toString() : '',
-                    keyboardType: TextInputType.number,
+                    controller: _heightController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: buildHealthInputDecoration('Рост (см)',controller.getErrorForField('height'),),
                     onChanged: (value) {
                       controller.updateHeight(value);
@@ -316,9 +339,20 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
               height: 50,
               child: ElevatedButton(
                 onPressed: controller.isSaving ? null : () async {
+                  debugPrint('Button pressed, starting save...');
                   final success = await controller.saveQuestionnaire();
-                  if (success && context.mounted){
-                    Navigator.pushReplacementNamed(context, '/home');
+                  debugPrint('Save result: success=$success, mounted=${context.mounted}');
+                  if (success && context.mounted) {
+                    debugPrint('Navigating to /home...');
+                    final recoveryData = controller.formData!.toRecoveryData();
+                    Navigator.pushReplacementNamed(context, '/home', arguments: recoveryData);
+                  } else {
+                    debugPrint('Navigation skipped: success=$success, mounted=${context.mounted}');
+                    // Опционально: SnackBar с ошибкой
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Сохранено, но ошибка навигации. Перейдите вручную.')),
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(

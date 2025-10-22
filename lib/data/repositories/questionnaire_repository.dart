@@ -8,7 +8,7 @@ import '../models/models.dart';
 
 class QuestionnaireRepository {
   static const _tableName = 'questionnaires';
-  static const _baseUrl = 'http://176.114.91.241:8000';
+  static const _baseUrl = 'http://195.225.111.85:8000';
   final _questionnaireService = QuestionnaireService();
   Future<Database> getDatabase() async {
     return openDatabase(
@@ -34,6 +34,7 @@ class QuestionnaireRepository {
     final db = await getDatabase();
     if (data.id == null) {
       await db.insert('questionnaires', data.toMap());
+      debugPrint('DEBUG: local db insers OK');
     } else {
       await db.update(
         'questionnaires',

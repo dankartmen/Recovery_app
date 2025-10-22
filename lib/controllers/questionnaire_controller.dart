@@ -197,7 +197,8 @@ class QuestionnaireController with ChangeNotifier{
     }
 
     notifyListeners();
-
+    debugPrint('Validation errors: $fieldErrors');
+    debugPrint('DEBUG: Weight = ${_formData.weight}, Height = ${_formData.height}');
     return fieldErrors.isEmpty;
   }
   
@@ -208,6 +209,7 @@ class QuestionnaireController with ChangeNotifier{
     if(!validate()){
       return false;
     }
+    debugPrint('Validation OK, userId: ${_authService?.currentUser?.id}');
     isSaving = true;
     errorMessage = null;
     notifyListeners();
@@ -215,12 +217,14 @@ class QuestionnaireController with ChangeNotifier{
     try {
       final recoveryData = _formData.toRecoveryData();
       await _questionnaireRepo?.saveQuestionnaire(recoveryData);
-
+      debugPrint('Local save OK');
       final userId = _authService?.currentUser?.id;
       if(userId != null){
+        debugPrint('Sending to server...');
         await _questionnaireRepo?.saveToServer(recoveryData, _authService!.getBasicAuthHeader(), userId);
       
         await _questionnaireRepo?.syncWithServer(_authService!.getBasicAuthHeader(), userId);
+        debugPrint('syncWithServer OK');
       }
       return true;
     } catch (e) {

@@ -19,7 +19,7 @@ class AuthService with ChangeNotifier {
   static const String _prefKey = 'user_session';
 
   /// Базовый URL сервера для API запросов
-  static const String _baseUrl = 'http://176.114.91.241:8000';
+  static const String _baseUrl = 'http://195.225.111.85:8000';
 
   /// Имя пользователя для аутентификации
   String? _username;

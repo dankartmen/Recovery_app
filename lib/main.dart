@@ -1,3 +1,5 @@
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
 import 'controllers/login_controller.dart';
 import 'controllers/registration_controller.dart';
 import 'data/models/exercise_list_model.dart';
@@ -30,11 +32,17 @@ import 'data/models/models.dart';
 import 'features/sounds/sound_selection_dialog.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
+import 'dart:io';
 /* bulat bulat1000T$ */
 void main() async {
   //debugPaintSizeEnabled = true;
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    sqfliteFfiInit();  // Инициализируем FFI
+    databaseFactory = databaseFactoryFfi;  // Устанавливаем factory
+  }
+
   await _initializeApp();
 
   // Создание и инициализация сервисов и моделей

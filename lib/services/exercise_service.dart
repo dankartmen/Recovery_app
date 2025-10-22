@@ -13,7 +13,7 @@ class ExerciseService {
   final AuthService authService;
 
   /// Базовый URL сервера для API упражнений
-  static const String _baseUrl = 'http://176.114.91.241:8000/exercises';
+  static const String _baseUrl = 'http://195.225.111.85:8000/exercises';
 
   /// {@macro exercise_service}
   ExerciseService({required this.authService});
