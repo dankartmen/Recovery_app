@@ -14,8 +14,7 @@ import 'features/sounds/sound_service.dart';
 import 'package:provider/provider.dart';
 import 'adapters/exercise_adapter.dart';
 import 'adapters/time_of_day_adapter.dart';
-import 'adapters/training_adapter.dart';
-import 'adapters/training_schedule_adapter.dart';
+
 import 'controllers/questionnaire_controller.dart';
 import 'data/models/history_model.dart';
 import 'data/models/home_screen_model.dart';
@@ -33,7 +32,7 @@ import 'features/sounds/sound_selection_dialog.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:io';
-/* bulat bulat1000T$ */
+/* bulat bulат1000T$ */
 void main() async {
   //debugPaintSizeEnabled = true;
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,9 +51,9 @@ void main() async {
   final historyModel = HistoryModel(HistoryRepository(authService));
   final trainingCalendarModel = TrainingCalendarModel();
   final questionnaireRepository = QuestionnaireRepository();
-  final homeScreenModel = HomeScreenModel();
+  final homeScreenModel = HomeScreenModel(trainingCalendarModel);
   final exerciseService = ExerciseService(authService: authService);
-
+  
   // Запуск приложения с MultiProvider для управления состоянием
   runApp(
     MultiProvider(
@@ -88,8 +87,6 @@ Future<void> _initializeApp() async {
   await Hive.initFlutter();
 
   // Регистрация адаптеров для хранения моделей в Hive
-  Hive.registerAdapter(TrainingScheduleAdapter());
-  Hive.registerAdapter(TrainingAdapter());
   Hive.registerAdapter(ExerciseAdapter());
   Hive.registerAdapter(TimeOfDayAdapter());
   await Hive.openBox<TrainingSchedule>('training_schedule');

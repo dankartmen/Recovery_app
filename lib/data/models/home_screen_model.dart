@@ -1,36 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-
-import 'training_schedule.dart';
+import 'training_calendar_model.dart';
+import 'training_schedule.dart'; // Импорт новой модели
 
 class HomeScreenModel extends ChangeNotifier {
-  TrainingSchedule _schedule = TrainingSchedule(trainings: {}, injuryType: '');
+  final TrainingCalendarModel _trainingCalendarModel; // Зависимость от модели календаря
 
-  TrainingSchedule get schedule => _schedule;
+  TrainingSchedule? _localSchedule;
 
-  HomeScreenModel() {
-    _init();
+  // Используем публичный геттер TrainingCalendarModel.currentSchedule
+  TrainingSchedule? get schedule => _localSchedule ?? _trainingCalendarModel.currentSchedule; // Геттер для расписания
+
+  HomeScreenModel(this._trainingCalendarModel) {
+    // Подписка на изменения в модели календаря
+    _trainingCalendarModel.addListener(_onScheduleChanged);
+    // Инициализация: загрузка текущего расписания
+    _trainingCalendarModel.loadCurrentSchedule();
   }
 
-  Future<void> _init() async {
-    final box = await Hive.openBox<TrainingSchedule>('training_schedule');
-    updateSchedule(
-      box.get('schedule') ?? TrainingSchedule(trainings: {}, injuryType: ''),
-    );
-
-    // Слушаем изменения в Hive
-    box.listenable().addListener(() {
-      updateSchedule(
-        box.get('schedule') ?? TrainingSchedule(trainings: {}, injuryType: ''),
-      );
-    });
+  void _onScheduleChanged() {
+    // Синхронизируем локальный кэш, если модель календаря обновила расписание
+    _localSchedule = _trainingCalendarModel.currentSchedule;
+    notifyListeners(); // Уведомление об изменениях расписания
   }
 
-  void updateSchedule(TrainingSchedule newSchedule) {
-    debugPrint('Обновление расписания:');
-    debugPrint('Количество дней: ${newSchedule.trainings.length}');
-    debugPrint('Ключи: ${newSchedule.trainings.keys}');
-    _schedule = newSchedule;
+  /// Обновить расписание извне (например, после сохранения в Hive)
+  void updateSchedule(TrainingSchedule schedule) {
+    _localSchedule = schedule;
     notifyListeners();
   }
+
+  @override
+  void dispose() {
+    _trainingCalendarModel.removeListener(_onScheduleChanged);
+    super.dispose();
+  }
+
 }

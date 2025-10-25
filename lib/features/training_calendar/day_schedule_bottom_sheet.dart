@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../data/models/models.dart';
 import '../../data/models/training.dart';
+import '../../data/models/training_calendar_model.dart';
 import '../../styles/style.dart';
 
 /// {@template day_schedule_bottom_sheet}
@@ -14,7 +15,7 @@ class DayScheduleBottomSheet extends StatefulWidget {
   final DateTime day;
 
   /// Функция для получения списка тренировок на указанный день
-  final List<Training> Function() getTrainingsForDay;
+  final Future<List<Training>> Function() getTrainingsForDay;  // Изменено с List<Training> на Future<List<Training>>
 
   /// Функция обратного вызова при добавлении новой тренировки
   final Function(Training)? onAdd;
@@ -28,12 +29,12 @@ class DayScheduleBottomSheet extends StatefulWidget {
   /// Функция обратного вызова при обновлении тренировки
   final Function(Training, Training)? onUpdate;
 
-  /// Функция для проверки завершенности тренировки
-  final bool Function(Training) isTrainingCompleted;
-
   /// Режим только для чтения
   final bool isReadOnly;
 
+  /// Зависимость от модели для обновлений
+  final TrainingCalendarModel trainingCalendarModel;
+  
   /// {@macro day_schedule_bottom_sheet}
   const DayScheduleBottomSheet({
     super.key,
@@ -43,8 +44,8 @@ class DayScheduleBottomSheet extends StatefulWidget {
     this.onAdd,
     this.onDelete,
     this.onUpdate,
-    required this.isTrainingCompleted,
     this.isReadOnly = false,
+    required this.trainingCalendarModel,
   });
 
   @override
@@ -53,37 +54,46 @@ class DayScheduleBottomSheet extends StatefulWidget {
 
 class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
   /// Локальный список тренировок для отображения
-  late List<Training> trainings;
+  List<Training> _trainings = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     // Инициализация списка тренировок при создании виджета
-    trainings = widget.getTrainingsForDay();
+    _loadTrainings();
+  }
+
+  /// Загрузка тренировок
+  Future<void> _loadTrainings() async {
+    setState(() => _isLoading = true);
+    try {
+      final loadedTrainings = await widget.getTrainingsForDay();
+      if (mounted) {
+        setState(() {
+          _trainings = loadedTrainings;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _trainings = [];
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка загрузки тренировок: $e')),
+        );
+      }
+    }
   }
 
   /// Обновление локального списка тренировок
-  void _updateTrainings() {
-    setState(() {
-      trainings = widget.getTrainingsForDay();
-    });
+  Future<void> _updateTrainings() async {
+    await _loadTrainings();
   }
 
-  /// Добавление новой тренировки
-  /// Принимает:
-  /// - [day] - день для добавления тренировки
-  /// - [exercise] - выбранное упражнение
-  /// - [time] - время тренировки
-  void _addTraining(DateTime day, Exercise exercise, TimeOfDay time) {
-    final newTraining = Training(
-      exercise: exercise,
-      date: day,
-      title: exercise.title,
-      time: time,
-    );
-    widget.onAdd?.call(newTraining);
-    _updateTrainings();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +130,7 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: healthSecondaryTextColor.withValues(alpha: 0.7),
+                    color: healthSecondaryTextColor.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -128,15 +138,17 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
           ),
           const SizedBox(height: 16),
 
-          // Список тренировок
-          if (trainings.isEmpty)
+          // Индикатор загрузки или список тренировок
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_trainings.isEmpty)
             Center(
               child: Column(
                 children: [
                   Icon(
                     Icons.event_note,
                     size: 64,
-                    color: healthSecondaryColor.withValues(alpha: 0.5),
+                    color: healthSecondaryColor.withOpacity(0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -157,7 +169,7 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
-                      color: healthSecondaryTextColor.withValues(alpha: 0.7),
+                      color: healthSecondaryTextColor.withOpacity(0.7),
                     ),
                   ),
                 ],
@@ -167,10 +179,10 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
             Flexible(
               child: ListView.builder(
                 shrinkWrap: true,
-                itemCount: trainings.length,
+                itemCount: _trainings.length,
                 itemBuilder: (context, index) {
-                  final training = trainings[index];
-                  final isCompleted = widget.isTrainingCompleted(training);
+                  final training = _trainings[index];
+                  final isCompleted = widget.trainingCalendarModel.isTrainingCompleted(training);
                   return Card(
                     elevation: 2,
                     shape: RoundedRectangleBorder(
@@ -195,7 +207,7 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.delete),
-                                    onPressed: () => widget.onDelete!(training),
+                                    onPressed: () => _deleteTraining(training),
                                   ),
                                 ],
                               ),
@@ -219,8 +231,8 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
             Center(
               child: ElevatedButton.icon(
                 onPressed: () => _showAddTrainingDialog(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Добавить тренировку'),
+                icon: const Icon(Icons.add, color: Colors.white,),
+                label: const Text('Добавить тренировку', style: TextStyle(color: Colors.white),),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: healthPrimaryColor,
                   shape: RoundedRectangleBorder(
@@ -281,6 +293,46 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
     _addTraining(widget.day, selectedExercise, selectedTime);
   }
 
+  /// Добавление новой тренировки
+  /// Принимает:
+  /// - [day] - день для добавления тренировки
+  /// - [exercise] - выбранное упражнение
+  /// - [time] - время тренировки
+  void _addTraining(DateTime day, Exercise exercise, TimeOfDay time) async {
+    try {
+      final trainingCalendarModel = widget.trainingCalendarModel;
+      final scheduleId = trainingCalendarModel.currentSchedule?.id ?? 0;
+      if (scheduleId == 0) {
+        debugPrint('Расписание не загружено');
+        return; // Или покажите ошибку UI
+      }
+
+      // Создаём объект для API
+      final newTraining = Training(
+        id: 0, // Временный, сервер присвоит
+        scheduleId: scheduleId,
+        exerciseId: exercise.id ?? 0,
+        title: exercise.title,
+        date: day,
+        timeStr: '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+        isCompleted: false,
+      );
+
+      // Вызываем API через модель
+      final created = await trainingCalendarModel.addTraining(newTraining);
+      widget.onAdd?.call(created); // Для родительского UI
+      await _updateTrainings(); // Ждём обновления списка
+    } catch (e) {
+      debugPrint('Ошибка добавления: $e');
+      // Показать Snackbar или диалог об ошибке
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка добавления тренировки: $e')),
+        );
+      }
+    }
+  }
+
   /// Редактирование времени тренировки
   /// Принимает:
   /// - [context] - контекст построения виджета
@@ -291,10 +343,36 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
       initialTime: training.time,
     );
 
-    if (newTime != null) {
+    if (newTime != null && !training.isSameTime(newTime)) {
       final updatedTraining = training.copyWith(time: newTime);
+      try {
+      await widget.trainingCalendarModel.updateTraining(training, updatedTraining);
       widget.onUpdate?.call(training, updatedTraining);
-      _updateTrainings(); // Обновляем локальное состояние
+      await _updateTrainings(); // Ждём обновления списка
+      } catch (e) {
+        debugPrint('Ошибка обновления: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка обновления тренировки: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  // Добавьте метод для удаления (вызывается из onDelete)
+  void _deleteTraining(Training training) async {
+    try {
+      await widget.trainingCalendarModel.deleteTraining(training);
+      widget.onDelete?.call(training);
+      await _updateTrainings(); // Ждём обновления списка
+    } catch (e) {
+      debugPrint('Ошибка удаления: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка удаления тренировки: $e')),
+        );
+      }
     }
   }
 }

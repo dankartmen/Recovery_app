@@ -18,7 +18,7 @@ import '../training_calendar/day_schedule_bottom_sheet.dart';
 // Экран истории выполненных упражнений
 class HistoryScreen extends StatefulWidget {
   final RecoveryData recoveryData;
-  final TrainingSchedule schedule;
+  final TrainingSchedule? schedule;
 
   const HistoryScreen({
     required this.recoveryData,
@@ -35,11 +35,13 @@ class HistoryScreenState extends State<HistoryScreen> {
   List<ExerciseHistory> _historyList = [];
   bool _isLoading = true;
   String? _error;
-  TrainingSchedule _schedule = TrainingSchedule(trainings: {}, injuryType: '');
   List<Exercise> _exercises = []; // Для добавления тренировок
+  bool _isGenerating = false;
 
   /// Выбранный день в календаре
   DateTime? _selectedDay;
+
+  TrainingSchedule? _schedule;
 
   @override
   void initState() {
@@ -65,12 +67,9 @@ class HistoryScreenState extends State<HistoryScreen> {
       );
       _historyList = historyModel.history;
 
-      // Загрузка расписания из Hive
-      final scheduleBox = await Hive.openBox<TrainingSchedule>(
-        'training_schedule',
-      );
-      final savedSchedule = scheduleBox.get('schedule');
-      _schedule = savedSchedule ?? TrainingSchedule.empty();
+      // Загрузка агрузка расписания через модель
+      final trainingCalendarModel = Provider.of<TrainingCalendarModel>(context, listen: false);
+      await trainingCalendarModel.loadCurrentSchedule(); // Загрузка с сервера
       if (!mounted) return;
 
       // Загрузка упражнений
@@ -84,6 +83,11 @@ class HistoryScreenState extends State<HistoryScreen> {
         );
       }
       _exercises = exerciseListModel.exercises;
+
+      // Подтягиваем расписание из HomeScreenModel (или use trainingCalendarModel.currentSchedule)
+      final homeModel = Provider.of<HomeScreenModel>(context, listen: false);
+      _schedule = homeModel.schedule ?? trainingCalendarModel.currentSchedule;
+
       setState(() {
         _isLoading = false;
       });
@@ -100,31 +104,17 @@ class HistoryScreenState extends State<HistoryScreen> {
     super.dispose();
   }
 
-  // Определение статуса дня
-  int _getDayStatus(DateTime day, List<ExerciseHistory> history) {
+  // Определение статуса дня (0 - нет, 1 - частично/вне плана, 2 - все/полностью)
+  int _getDayStatus(DateTime day, List<ExerciseHistory> historyList) {
     final normalizedDay = DateTime(day.year, day.month, day.day);
-    // 1. Проверяем выполненные упражнения за день
-    final completedExercises =
-        history
-            .where((h) => isSameDay(h.dateTime, normalizedDay))
-            .map((h) => h.exerciseName)
-            .toSet();
-    if (completedExercises.isEmpty) {
-      return 0; // если нету выполненных тренировок
-    }
-    // 2. Получаем запланированные тренировки
-    final plannedTrainings = _schedule.trainings[normalizedDay] ?? [];
+    final trainings = _schedule?.trainings[normalizedDay] ?? <Training>[];
+    final completedCount = trainings.where((t) => t.isCompleted).length;
+    final historyCount = historyList.where((h) => isSameDay(h.dateTime, day)).length;
 
-    // 3. Определяем статус
-    if (plannedTrainings.isEmpty) {
-      return history.any((h) => isSameDay(h.dateTime, day)) ? 1 : 0;
-    }
-
-    final allCompleted = plannedTrainings.every(
-      (training) => completedExercises.contains(training.title),
-    );
-
-    return allCompleted ? 3 : 2; // 3 = все выполнено, 2 = частично
+    if (trainings.isEmpty) return 0;
+    if (completedCount + historyCount >= trainings.length) return 2;
+    if (completedCount + historyCount > 0) return 1;
+    return 0;
   }
 
   Color _getStatusColor(int status) {
@@ -144,45 +134,25 @@ class HistoryScreenState extends State<HistoryScreen> {
   /// Принимает:
   /// - [day] - день для отображения деталей
   void _showDayDetails(DateTime day) {
-    final normalizedDay = DateTime(day.year, day.month, day.day);
-    final dayTrainings = _schedule.trainings[normalizedDay] ?? [];
-    debugPrint(
-      'Запрошены тренировки на ${DateFormat('dd.MM.yyyy').format(normalizedDay)}: ${dayTrainings.length}',
-    );
-
-    final isPastDay = normalizedDay.isBefore(DateTime.now());
-
     showModalBottomSheet(
       context: context,
-      builder:
-          (context) => DayScheduleBottomSheet(
-            filteredExercises: _exercises,
-            day: normalizedDay,
-            getTrainingsForDay: () => dayTrainings,
-            onAdd:
-                isPastDay
-                    ? null
-                    : (training) => _addTraining(normalizedDay, training),
-            onDelete:
-                isPastDay
-                    ? null
-                    : (training) => _deleteTraining(normalizedDay, training),
-            onUpdate:
-                isPastDay
-                    ? null
-                    : (oldTraining, newTraining) => _updateTraining(
-                      normalizedDay,
-                      oldTraining,
-                      newTraining,
-                    ),
-            isTrainingCompleted:
-                Provider.of<TrainingCalendarModel>(
-                  context,
-                  listen: false,
-                ).isTrainingCompleted,
-            isReadOnly: isPastDay,
-          ),
-    );
+      isScrollControlled: true,
+      builder: (context) => DayScheduleBottomSheet(
+        day: day,
+        getTrainingsForDay: () => _getTrainingsForDay(day), 
+        filteredExercises: _exercises, // Из _loadData
+        onAdd: null, // Опционально, модель обновит UI
+        onDelete: null,
+        onUpdate: null,
+        isReadOnly: false,
+        trainingCalendarModel: Provider.of<TrainingCalendarModel>(context, listen: false),
+      ),
+    ).then((_) => setState(() {})); // Обновить UI после закрытия
+  }
+
+  Future<List<Training>> _getTrainingsForDay(DateTime day) async {
+    final trainingCalendarModel = Provider.of<TrainingCalendarModel>(context, listen: false);
+    return trainingCalendarModel.getTrainingsForDay(day).then((list) => list); // Адаптируйте под async если нужно
   }
 
   /// Обновление тренировки
@@ -195,50 +165,39 @@ class HistoryScreenState extends State<HistoryScreen> {
     Training oldTraining,
     Training newTraining,
   ) {
-    final index = _schedule.trainings[day]?.indexOf(oldTraining);
+    if (_schedule == null) return;
+    final list = _schedule!.trainings[day];
+    if (list == null) return;
+    final index = list.indexOf(oldTraining);
 
-    if (index != null && index >= 0) {
+    if (index >= 0) {
       setState(() {
-        _schedule.trainings[day]![index] = newTraining;
+        _schedule!.trainings[day]![index] = newTraining;
       });
-      _saveSchedule(_schedule);
+      _saveSchedule(_schedule!);
     }
   }
 
-  /// Добавление новой тренировки
-  /// Принимает:
-  /// - [day] - день для добавления тренировки
-  /// - [training] - данные тренировки
-  void _addTraining(DateTime day, Training training) {
-    final List<Training> newTrainings = [
-      ..._schedule.trainings[day] ?? [],
-      training,
-    ];
-
-    setState(() {
-      _schedule.trainings[day] = newTrainings;
-    });
-
-    _saveSchedule(_schedule);
-  }
+  
 
   /// Удаление тренировки
   /// Принимает:
   /// - [day] - день тренировки
   /// - [training] - тренировка для удаления
   void _deleteTraining(DateTime day, Training training) {
-    final List<Training> newTrainings = [...?_schedule.trainings[day]];
+    if (_schedule == null) return;
+    final List<Training> newTrainings = [...?_schedule!.trainings[day]];
     newTrainings.remove(training);
 
     setState(() {
       if (newTrainings.isEmpty) {
-        _schedule.trainings.remove(day);
+        _schedule!.trainings.remove(day);
       } else {
-        _schedule.trainings[day] = newTrainings;
+        _schedule!.trainings[day] = newTrainings;
       }
     });
 
-    _saveSchedule(_schedule);
+    _saveSchedule(_schedule!);
   }
 
   /// Сохранение расписания тренировок в хранилище
@@ -430,7 +389,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                 decoration: BoxDecoration(
                   color: _getPainColor(
                     history.painLevel,
-                  ).withValues(alpha: 0.1),
+                  ).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -485,7 +444,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                 children: [
                   Chip(
                     label: Text('${history.sets} подходов'),
-                    backgroundColor: healthPrimaryColor.withValues(alpha: 0.1),
+                    backgroundColor: healthPrimaryColor.withOpacity(0.1),
                     labelStyle: TextStyle(
                       color: healthPrimaryColor,
                       fontSize: 12,
@@ -519,7 +478,7 @@ class HistoryScreenState extends State<HistoryScreen> {
               label: Text(_selectedTimePeriod),
               selected: true,
               onSelected: (_) => _showTimePeriodDialog(),
-              backgroundColor: healthPrimaryColor.withValues(alpha: 0.1),
+              backgroundColor: healthPrimaryColor.withOpacity(0.1),
               labelStyle: TextStyle(color: healthPrimaryColor),
             ),
           ),
@@ -529,7 +488,7 @@ class HistoryScreenState extends State<HistoryScreen> {
               label: Text(_selectedInjuryType),
               selected: true,
               onSelected: (_) => _showInjuryTypeDialog(),
-              backgroundColor: healthPrimaryColor.withValues(alpha: 0.1),
+              backgroundColor: healthPrimaryColor.withOpacity(0.1),
               labelStyle: TextStyle(color: healthPrimaryColor),
             ),
           ),
@@ -677,6 +636,52 @@ class HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  Future<void> _generateNewSchedule() async {
+    if (widget.recoveryData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Сначала заполните анкету!')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isGenerating = true;
+    });
+
+    try {
+      final trainingCalendarModel = Provider.of<TrainingCalendarModel>(context, listen: false);
+      await trainingCalendarModel.generateAndSaveSchedule(widget.recoveryData);
+      
+      // Обновляем локальные данные после генерации
+      await _loadData();  // Перезагружаем расписание и историю
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Новое расписание сгенерировано!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Ошибка генерации: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -750,7 +755,7 @@ class HistoryScreenState extends State<HistoryScreen> {
         focusedDay: DateTime.now(),
         calendarStyle: CalendarStyle(
           todayDecoration: BoxDecoration(
-            color: healthPrimaryColor.withValues(alpha: 0.2),
+            color: healthPrimaryColor.withOpacity(0.2),
             shape: BoxShape.circle,
           ),
           selectedDecoration: BoxDecoration(
