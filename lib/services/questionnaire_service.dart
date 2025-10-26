@@ -10,7 +10,7 @@ import '../data/models/models.dart';
 /// {@endtemplate}
 class QuestionnaireService { 
   /// Базовый URL сервера для API анкет
-  final String _baseUrl = 'http://195.225.111.85:8000';
+  final String _baseUrl = 'http://195.225.111.85:8000/questionnaires';
 
   
   /// {@macro questionnaire_service}
@@ -37,7 +37,7 @@ class QuestionnaireService {
     int userId,
   ) async {
       return await http.post(
-        Uri.parse('$_baseUrl/questionnaires'),
+        Uri.parse('$_baseUrl/'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': basicAuth,
