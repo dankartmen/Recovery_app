@@ -39,7 +39,7 @@ class HomeScreenState extends State<HomeScreen> {
     final stopwatch = Stopwatch()..start();
     try {
       _homeModel = Provider.of<HomeScreenModel>(context, listen: false);
-      await _loadTrainingSchedule();
+      // await _loadTrainingSchedule();
       _currentRecoveryData = widget.recoveryData;
       _initializeScreens();
       await _loadLatestData();
@@ -54,17 +54,17 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _loadTrainingSchedule() async {
-    try {
-      final box = await Hive.openBox<TrainingSchedule>('training_schedule');
-      final schedule = box.get('schedule');
-      if (schedule != null) {
-        _homeModel.updateSchedule(schedule); // ОБНОВЛЯЕМ МОДЕЛЬ
-      }
-    } catch (e) {
-      debugPrint('Ошибка загрузки расписания: $e');
-    }
-  }
+  // Future<void> _loadTrainingSchedule() async {
+  //   try {
+  //     final box = await Hive.openBox<TrainingSchedule>('training_schedule');
+  //     final schedule = box.get('schedule');
+  //     if (schedule != null) {
+  //       _homeModel.updateSchedule(schedule); // ОБНОВЛЯЕМ МОДЕЛЬ
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Ошибка загрузки расписания: $e');
+  //   }
+  // }
 
   @override
   void didChangeDependencies() {

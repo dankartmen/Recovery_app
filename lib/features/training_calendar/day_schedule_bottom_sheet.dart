@@ -130,7 +130,7 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: healthSecondaryTextColor.withOpacity(0.7),
+                    color: healthSecondaryTextColor.withValues(alpha:0.7),
                   ),
                 ),
               ],
@@ -148,7 +148,7 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
                   Icon(
                     Icons.event_note,
                     size: 64,
-                    color: healthSecondaryColor.withOpacity(0.5),
+                    color: healthSecondaryColor.withValues(alpha:0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -169,7 +169,7 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
-                      color: healthSecondaryTextColor.withOpacity(0.7),
+                      color: healthSecondaryTextColor.withValues(alpha:0.7),
                     ),
                   ),
                 ],
@@ -183,13 +183,28 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
                 itemBuilder: (context, index) {
                   final training = _trainings[index];
                   final isCompleted = widget.trainingCalendarModel.isTrainingCompleted(training);
+                  
+                  // Находим упражнение по exerciseId
+                  final exercise = widget.filteredExercises.firstWhere(
+                    (e) => e.id == training.exerciseId,
+                    orElse: () => Exercise(
+                      id: null,
+                      title: 'Неизвестное упражнение',
+                      generalDescription: '',
+                      suitableFor: [],
+                      maxPainLevel: 0,
+                      steps: [],
+                      tags: [],
+                    ),
+                  );
+
                   return Card(
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: ListTile(
-                      title: Text(training.title),
+                      title: Text(exercise.title), // Используем название из упражнения
                       subtitle: Text(training.time.format(context)),
                       trailing:
                           widget.onAdd == null
@@ -325,7 +340,7 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
     } catch (e) {
       debugPrint('Ошибка добавления: $e');
       // Показать Snackbar или диалог об ошибке
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ошибка добавления тренировки: $e')),
         );
@@ -368,7 +383,7 @@ class DayScheduleBottomSheetState extends State<DayScheduleBottomSheet> {
       await _updateTrainings(); // Ждём обновления списка
     } catch (e) {
       debugPrint('Ошибка удаления: $e');
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ошибка удаления тренировки: $e')),
         );

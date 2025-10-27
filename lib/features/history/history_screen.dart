@@ -2,7 +2,7 @@ import '../../data/models/exercise_list_model.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+//import 'package:hive/hive.dart';
 import '../../data/models/exercise_history.dart';
 import '../../data/models/history_model.dart';
 import '../../data/models/models.dart';
@@ -36,7 +36,6 @@ class HistoryScreenState extends State<HistoryScreen> {
   bool _isLoading = true;
   String? _error;
   List<Exercise> _exercises = []; // Для добавления тренировок
-  bool _isGenerating = false;
 
   /// Выбранный день в календаре
   DateTime? _selectedDay;
@@ -67,7 +66,8 @@ class HistoryScreenState extends State<HistoryScreen> {
       );
       _historyList = historyModel.history;
 
-      // Загрузка агрузка расписания через модель
+      if(!mounted) return;
+      // Загрузка расписания через модель
       final trainingCalendarModel = Provider.of<TrainingCalendarModel>(context, listen: false);
       await trainingCalendarModel.loadCurrentSchedule(); // Загрузка с сервера
       if (!mounted) return;
@@ -84,6 +84,7 @@ class HistoryScreenState extends State<HistoryScreen> {
       }
       _exercises = exerciseListModel.exercises;
 
+      if(!mounted) return;
       // Подтягиваем расписание из HomeScreenModel (или use trainingCalendarModel.currentSchedule)
       final homeModel = Provider.of<HomeScreenModel>(context, listen: false);
       _schedule = homeModel.schedule ?? trainingCalendarModel.currentSchedule;
@@ -174,7 +175,7 @@ class HistoryScreenState extends State<HistoryScreen> {
       setState(() {
         _schedule!.trainings[day]![index] = newTraining;
       });
-      _saveSchedule(_schedule!);
+      //_saveSchedule(_schedule!);
     }
   }
 
@@ -197,35 +198,35 @@ class HistoryScreenState extends State<HistoryScreen> {
       }
     });
 
-    _saveSchedule(_schedule!);
+    //_saveSchedule(_schedule!);
   }
 
   /// Сохранение расписания тренировок в хранилище
   /// Принимает:
   /// - [schedule] - расписание для сохранения
-  Future<void> _saveSchedule(TrainingSchedule schedule) async {
-    setState(() => _schedule = schedule);
-    try {
-      final scheduleBox = await Hive.openBox<TrainingSchedule>(
-        'training_schedule',
-      );
-      await scheduleBox.put('schedule', schedule);
-      if (!mounted) return;
+  // Future<void> _saveSchedule(TrainingSchedule schedule) async {
+  //   setState(() => _schedule = schedule);
+  //   try {
+  //     final scheduleBox = await Hive.openBox<TrainingSchedule>(
+  //       'training_schedule',
+  //     );
+  //     await scheduleBox.put('schedule', schedule);
+  //     if (!mounted) return;
 
-      // Обновляем глобальное состояние
-      Provider.of<HomeScreenModel>(
-        context,
-        listen: false,
-      ).updateSchedule(schedule);
+  //     // Обновляем глобальное состояние
+  //     Provider.of<HomeScreenModel>(
+  //       context,
+  //       listen: false,
+  //     ).updateSchedule(schedule);
 
-      // УВЕДОМЛЕНИЕ ОБ УСПЕШНОМ СОХРАНЕНИИ
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Расписание обновлено!')));
-    } catch (e) {
-      debugPrint('Ошибка сохранения расписания: $e');
-    }
-  }
+  //     // УВЕДОМЛЕНИЕ ОБ УСПЕШНОМ СОХРАНЕНИИ
+  //     ScaffoldMessenger.of(
+  //       context,
+  //     ).showSnackBar(SnackBar(content: Text('Расписание обновлено!')));
+  //   } catch (e) {
+  //     debugPrint('Ошибка сохранения расписания: $e');
+  //   }
+  // }
 
   @override
   void didChangeDependencies() {
@@ -389,7 +390,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                 decoration: BoxDecoration(
                   color: _getPainColor(
                     history.painLevel,
-                  ).withOpacity(0.1),
+                  ).withValues(alpha:0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -444,7 +445,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                 children: [
                   Chip(
                     label: Text('${history.sets} подходов'),
-                    backgroundColor: healthPrimaryColor.withOpacity(0.1),
+                    backgroundColor: healthPrimaryColor.withValues(alpha:0.1),
                     labelStyle: TextStyle(
                       color: healthPrimaryColor,
                       fontSize: 12,
@@ -478,7 +479,7 @@ class HistoryScreenState extends State<HistoryScreen> {
               label: Text(_selectedTimePeriod),
               selected: true,
               onSelected: (_) => _showTimePeriodDialog(),
-              backgroundColor: healthPrimaryColor.withOpacity(0.1),
+              backgroundColor: healthPrimaryColor.withValues(alpha:0.1),
               labelStyle: TextStyle(color: healthPrimaryColor),
             ),
           ),
@@ -488,7 +489,7 @@ class HistoryScreenState extends State<HistoryScreen> {
               label: Text(_selectedInjuryType),
               selected: true,
               onSelected: (_) => _showInjuryTypeDialog(),
-              backgroundColor: healthPrimaryColor.withOpacity(0.1),
+              backgroundColor: healthPrimaryColor.withValues(alpha:0.1),
               labelStyle: TextStyle(color: healthPrimaryColor),
             ),
           ),
@@ -636,51 +637,7 @@ class HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Future<void> _generateNewSchedule() async {
-    if (widget.recoveryData == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Сначала заполните анкету!')),
-      );
-      return;
-    }
 
-    setState(() {
-      _isGenerating = true;
-    });
-
-    try {
-      final trainingCalendarModel = Provider.of<TrainingCalendarModel>(context, listen: false);
-      await trainingCalendarModel.generateAndSaveSchedule(widget.recoveryData);
-      
-      // Обновляем локальные данные после генерации
-      await _loadData();  // Перезагружаем расписание и историю
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Новое расписание сгенерировано!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Ошибка генерации: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isGenerating = false;
-        });
-      }
-    }
-  }
   
   @override
   Widget build(BuildContext context) {
@@ -755,7 +712,7 @@ class HistoryScreenState extends State<HistoryScreen> {
         focusedDay: DateTime.now(),
         calendarStyle: CalendarStyle(
           todayDecoration: BoxDecoration(
-            color: healthPrimaryColor.withOpacity(0.2),
+            color: healthPrimaryColor.withValues(alpha:0.2),
             shape: BoxShape.circle,
           ),
           selectedDecoration: BoxDecoration(

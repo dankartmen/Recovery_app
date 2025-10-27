@@ -278,10 +278,10 @@ class AuthService with ChangeNotifier {
     final questionnaireRepo = QuestionnaireRepository();
     await questionnaireRepo.clearLocalData();
 
-    final scheduleBox = await Hive.openBox<TrainingSchedule>(
-      'training_schedule',
-    );
-    await scheduleBox.clear();
+    // final scheduleBox = await Hive.openBox<TrainingSchedule>(
+    //   'training_schedule',
+    // );
+    // await scheduleBox.clear();
   }
 
   /// Загрузка анкеты пользователя с сервера

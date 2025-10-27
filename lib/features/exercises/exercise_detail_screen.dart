@@ -495,7 +495,7 @@ class _ExerciseDetailContent extends StatelessWidget {
 
     if (notes != null) {
       final success = await controller.completeExercise(notes: notes);
-      if (success) {
+      if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text("Упражнение сохранено в истории"),

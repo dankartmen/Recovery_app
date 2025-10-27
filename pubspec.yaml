@@ -28,38 +28,33 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  audioplayers: ^6.4.0
+  cached_network_image: ^3.4.1
+  cupertino_icons: ^1.0.8
+  file_picker: ^10.3.3
+  fl_chart: ^1.0.0
   flutter:
     sdk: flutter
-  http: ^1.4.0
-  provider: ^6.1.5
   flutter_localizations:
-    sdk: flutter  
-  audioplayers: ^6.4.0
-  shared_preferences: ^2.5.3
-  cached_network_image: ^3.4.1
+    sdk: flutter
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  path_provider: ^2.1.5
-  path: ^1.9.1
+  http: ^1.4.0
+  intl: ^0.20.2
   open_file: ^3.3.1
-  url_launcher: ^6.1.11
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  pdf: ^3.10.1
   permission_handler: ^12.0.0
+  printing: ^5.10.0
+  provider: ^6.1.5
+  shared_preferences: ^2.5.3
   sqflite: ^2.4.2
   sqflite_common_ffi: ^2.3.5
   table_calendar: ^3.1.3
-  fl_chart: ^1.0.0
-  pdf: ^3.10.1
-  printing: ^5.10.0
-  intl: ^0.20.2
+  url_launcher: ^6.1.11
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  file_picker: ^10.3.3
-  
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
   flutter_launcher_icons: ^0.13.1
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -67,9 +62,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
-
-
-
+  flutter_test:
+    sdk: flutter
 
 flutter_icons:
   android: true
@@ -77,7 +71,6 @@ flutter_icons:
   image_path: "assets/images/logo.png"
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
-
 # The following section is specific to Flutter packages.
 flutter:
 
@@ -98,10 +91,8 @@ flutter:
     - assets/fonts/Roboto-Regular.ttf
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
-
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
-
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a

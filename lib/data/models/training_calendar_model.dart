@@ -123,8 +123,6 @@ class TrainingCalendarModel extends ChangeNotifier {
       // Generate on server
       _currentSchedule = await _trainingService!.generateSchedule(questionnaireId);
 
-      // Optionally load full exercises for trainings
-      await _trainingService!.loadExercisesForTrainings(_currentSchedule!.trainings.values.expand((e) => e).toList());
 
       notifyListeners();
     } catch (e) {

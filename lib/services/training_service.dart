@@ -6,7 +6,7 @@ import '../data/models/training.dart';
 import '../services/auth_service.dart';
 
 class TrainingService {
-  static const String baseUrl = 'http://195.225.111.85:8000';
+  static const String baseUrl = 'http://195.225.111.85:8000/schedules';
   final AuthService authService;
 
   TrainingService(this.authService);
@@ -63,7 +63,7 @@ class TrainingService {
 
   Future<List<Training>> getTrainingsForSchedule(int scheduleId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/schedules/$scheduleId/trainings'),
+      Uri.parse('$baseUrl/$scheduleId/trainings'),
       headers: {'Authorization': _authHeader},
     );
 
@@ -75,12 +75,6 @@ class TrainingService {
     }
   }
 
-  // Additional method to load full exercises for trainings (if needed)
-  Future<void> loadExercisesForTrainings(List<Training> trainings) async {
-    // Use ExerciseService to load exercises by IDs
-    // Implementation depends on ExerciseService; stub for now
-    debugPrint('Loading exercises for ${trainings.length} trainings');
-  }
 
   /// Добавление новой тренировки в расписание
   Future<Training> addTraining(int scheduleId, Training newTraining) async {
@@ -95,8 +89,6 @@ class TrainingService {
 
     if (response.statusCode == 201) {
       final updatedTraining = Training.fromJson(jsonDecode(response.body));
-      // Обновляем локальный кэш упражнения, если нужно
-      await loadExercisesForTrainings([updatedTraining]);
       return updatedTraining;
     } else {
       throw Exception('Failed to add training: ${response.statusCode}');
@@ -117,7 +109,6 @@ class TrainingService {
     if (response.statusCode == 200) {
       final updated = Training.fromJson(jsonDecode(response.body));
       // Обновляем локальный кэш
-      await loadExercisesForTrainings([updated]);
       return updated;
     } else {
       throw Exception('Failed to update training: ${response.statusCode}');

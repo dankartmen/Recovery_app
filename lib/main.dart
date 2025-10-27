@@ -84,12 +84,12 @@ void main() async {
 
 // Инициализация Hive и сервисов
 Future<void> _initializeApp() async {
-  await Hive.initFlutter();
+  // await Hive.initFlutter();
 
-  // Регистрация адаптеров для хранения моделей в Hive
-  Hive.registerAdapter(ExerciseAdapter());
-  Hive.registerAdapter(TimeOfDayAdapter());
-  await Hive.openBox<TrainingSchedule>('training_schedule');
+  // // Регистрация адаптеров для хранения моделей в Hive
+  // Hive.registerAdapter(ExerciseAdapter());
+  // Hive.registerAdapter(TimeOfDayAdapter());
+  // await Hive.openBox<TrainingSchedule>('training_schedule');
 
   await SoundService.init(); // Инициализация звукового сервиса
 }
@@ -136,14 +136,15 @@ class MyApp extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Scaffold(body: Center(child: CircularProgressIndicator()));
           }
-          if (snapshot.hasError) {
+          // Если есть ошибка или данные пустые - показываем анкету
+          if (snapshot.hasError || snapshot.data == null) {
             debugPrint('Ошибка загрузки анкеты: ${snapshot.error}');
-            return LoginScreen();
+            debugPrint('Данные анкеты: ${snapshot.data}');
+            return QuestionnaireScreen();
           }
-          if (snapshot.hasData && snapshot.data != null) {
-            return HomeScreen(recoveryData: snapshot.data!);
-          }
-          return QuestionnaireScreen();
+          
+          // Если анкета успешно загружена - показываем главный экран
+          return HomeScreen(recoveryData: snapshot.data!);
         },
       );
     } else {
