@@ -37,11 +37,6 @@ void main() async {
   //debugPaintSizeEnabled = true;
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    sqfliteFfiInit();  // Инициализируем FFI
-    databaseFactory = databaseFactoryFfi;  // Устанавливаем factory
-  }
-
   await _initializeApp();
 
   // Создание и инициализация сервисов и моделей
