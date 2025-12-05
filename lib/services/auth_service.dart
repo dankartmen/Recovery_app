@@ -3,12 +3,10 @@ import '../data/models/models.dart';
 import '../data/repositories/questionnaire_repository.dart';
 import '../data/models/user_model.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/models/training_schedule.dart';
 
 /// {@template auth_service}
 /// Сервис для управления аутентификацией и авторизацией пользователя.

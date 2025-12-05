@@ -1,4 +1,3 @@
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'controllers/login_controller.dart';
 import 'controllers/registration_controller.dart';
@@ -12,15 +11,14 @@ import 'package:flutter/material.dart';
 import 'features/sounds/sound_service.dart';
 //import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
-import 'adapters/exercise_adapter.dart';
-import 'adapters/time_of_day_adapter.dart';
+
 
 import 'controllers/questionnaire_controller.dart';
 import 'data/models/history_model.dart';
 import 'data/models/home_screen_model.dart';
 import 'data/models/sound.dart';
 import 'data/models/training_calendar_model.dart';
-import 'data/models/training_schedule.dart';
+
 import 'data/repositories/questionnaire_repository.dart';
 import 'features/history/history_screen.dart';
 import 'features/profile/profile_screen.dart';
@@ -30,8 +28,7 @@ import 'features/exercises/exercise_detail_screen.dart';
 import 'data/models/models.dart';
 import 'features/sounds/sound_selection_dialog.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'dart:io';
+
 /* bulat bulат1000T$ */
 void main() async {
   //debugPaintSizeEnabled = true;

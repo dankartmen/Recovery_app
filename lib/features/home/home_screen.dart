@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/models/history_model.dart';
 import '../../data/models/home_screen_model.dart';
 import '../../data/models/models.dart';
-import '../../data/models/training_schedule.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 import '../exercises/exercises_screen.dart';
 import '../history/history_screen.dart';
