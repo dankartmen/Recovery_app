@@ -1,9 +1,13 @@
 
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'auth/bloc/auth_bloc.dart';
+import 'auth/bloc/registration_bloc.dart';
 import 'controllers/login_controller.dart';
 import 'controllers/registration_controller.dart';
 import 'data/models/exercise_list_model.dart';
 import 'data/repositories/history_repository.dart';
-import 'features/login/login_screen.dart';
+import 'auth/screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'services/exercise_service.dart';
 import 'styles/style.dart';
@@ -51,8 +55,14 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthService>.value(value: authService),
-        ChangeNotifierProvider<AuthController>(create: (context) => AuthController(authService)),
-        ChangeNotifierProvider<RegistrationController>(create: (context) => RegistrationController(authService)),
+        BlocProvider<AuthBloc>(
+          create: (context) => AuthBloc(authService: Provider.of<AuthService>(context, listen: false)),
+        ),
+        BlocProvider<RegistrationBloc>(
+          create: (context) => RegistrationBloc(
+            authService: Provider.of<AuthService>(context, listen: false),
+          ),
+        ),
         ChangeNotifierProvider<HistoryModel>.value(value: historyModel),
         ChangeNotifierProvider<TrainingCalendarModel>.value(
           value: trainingCalendarModel,
