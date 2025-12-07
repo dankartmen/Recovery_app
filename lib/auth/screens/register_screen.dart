@@ -1,10 +1,7 @@
-import 'package:auth_test/auth/bloc/registration_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:provider/provider.dart';
-
-import '../../services/auth_service.dart';
-import '../../styles/style.dart';
+import '../../core/styles/style.dart';
+import '../bloc/registration_bloc.dart'; // Замените на ваш путь
 
 /// {@template register_screen}
 /// Экран регистрации нового пользователя.
@@ -19,16 +16,9 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  /// 
-  final _formKey = GlobalKey<FormState>(); 
-
-  /// Контроллер для поля ввода имени пользователя
+  final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
-
-  /// Контроллер для поля ввода пароля
   final _passwordController = TextEditingController();
-
-  /// Контроллер для поля подтверждения пароля
   final _confirmPasswordController = TextEditingController();
 
   @override
@@ -37,7 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _usernameController.addListener(() {
       context.read<RegistrationBloc>().add(UpdateUsername(_usernameController.text));
     });
-    _passwordController.addListener((){
+    _passwordController.addListener(() {
       context.read<RegistrationBloc>().add(UpdatePassword(_passwordController.text));
     });
     _confirmPasswordController.addListener(() {
@@ -49,9 +39,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return BlocListener<RegistrationBloc, RegistrationState>(
       listener: (context, state) {
-        if (state.isSuccess) {
-          final authService = RepositoryProvider.of<AuthService>(context); // Или Provider.of
-          authService.handlePostLoginNavigation(context); 
+        if (state.isSuccess && context.mounted) {
+          Navigator.pushReplacementNamed(context, '/questionnaire');
         }
       },
       child: BlocBuilder<RegistrationBloc, RegistrationState>(
@@ -101,6 +90,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Padding(
                             padding: const EdgeInsets.all(24),
                             child: Form(
+                              key: _formKey,
                               child: Column(
                                 children: [
                                   // Поле имени пользователя
@@ -152,7 +142,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                               : Icons.visibility,
                                           color: healthSecondaryColor,
                                         ),
-                                        onPressed: () => context.read<RegistrationBloc>().add(TogglePasswordVisibility()),
+                                        onPressed: () => context.read<RegistrationBloc>().add(ToggleConfirmPasswordVisibility()),
                                       ),
                                     ),
                                   ),
@@ -163,13 +153,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     width: double.infinity,
                                     height: 50,
                                     child: ElevatedButton(
-                                      onPressed:
-                                          state.isLoading ? null : () async { 
-                                            final success = await state.register(_usernameController.text, _passwordController.text, _confirmPasswordController.text);
-                                            if (success && context.mounted){
-                                              Navigator.pushReplacementNamed(context, '/questionnaire');
-                                            }
-                                          },
+                                      onPressed: state.isLoading ? null : () {
+                                        context.read<RegistrationBloc>().add(ValidateForm());
+                                      },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: healthPrimaryColor,
                                         shape: RoundedRectangleBorder(
@@ -179,25 +165,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           vertical: 14,
                                         ),
                                       ),
-                                      child:
-                                          state.isLoading
-                                              ? const CircularProgressIndicator(
+                                      child: state.isLoading
+                                          ? const CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 3,
+                                            )
+                                          : const Text(
+                                              'Зарегистрироваться',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
                                                 color: Colors.white,
-                                                strokeWidth: 3,
-                                              )
-                                              : const Text(
-                                                'Зарегистрироваться',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
-                                                ),
                                               ),
+                                            ),
                                     ),
                                   ),
-                                  if(state.errorMessage != null)
-                                    Text(state.errorMessage!, style: TextStyle(color: Colors.red),)
-
+                                  if (state.errorMessage != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        state.errorMessage!,
+                                        style: const TextStyle(color: Colors.red),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -210,8 +200,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           );
-        }
-      )
+        },
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 }

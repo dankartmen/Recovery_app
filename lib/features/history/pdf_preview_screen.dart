@@ -11,7 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/models/exercise_history.dart';
 import '../../data/models/models.dart';
-import '../../styles/style.dart';
+import '../../core/styles/style.dart';
 
 class PdfPreviewScreen extends StatelessWidget {
   final Future<Uint8List> Function() generatePdf;

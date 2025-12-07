@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../data/models/models.dart';
 import '../../data/models/training.dart';
 import '../../data/models/training_calendar_model.dart';
-import '../../styles/style.dart';
+import '../../core/styles/style.dart';
 
 /// {@template day_schedule_bottom_sheet}
 /// Виджет нижнего листа для отображения и управления расписанием тренировок на конкретный день.

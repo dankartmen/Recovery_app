@@ -2,7 +2,7 @@ import '../../data/models/exercise_list_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/models.dart';
-import '../../styles/style.dart';
+import '../../core/styles/style.dart';
 import 'exercise_detail_screen.dart';
 import 'exercise_tile.dart';
 

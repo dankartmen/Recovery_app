@@ -7,7 +7,7 @@ import '../../controllers/exercise_execution_controller.dart';
 import '../../data/models/models.dart';
 import '../../data/models/sound.dart';
 import '../../data/repositories/history_repository.dart';
-import '../../styles/style.dart';
+import '../../core/styles/style.dart';
 import '../sounds/sound_selection_dialog.dart';
 import 'timer_picker_screen.dart';
 

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/models.dart';
 import '../../services/auth_service.dart';
-import '../../styles/style.dart';
-import '../questionnaire/questionnaire_screen.dart';
+import '../../core/styles/style.dart';
+import '../../questionnaire/screens/questionnaire_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   final RecoveryData recoveryData;

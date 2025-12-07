@@ -1,11 +1,14 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-
 import '../../services/auth_service.dart';
 
 part 'registration_event.dart';
 part 'registration_state.dart';
 
+/// {@template registration_bloc}
+/// BLoC для управления процессом регистрации пользователя.
+/// Обеспечивает валидацию данных, управление состоянием и обработку ошибок.
+/// {@endtemplate}
 class RegistrationBloc extends Bloc<RegistrationEvent, RegistrationState> {
   final AuthService authService;
 
@@ -15,9 +18,9 @@ class RegistrationBloc extends Bloc<RegistrationEvent, RegistrationState> {
     on<UpdateConfirmPassword>(_onUpdateConfirmPassword);
     on<TogglePasswordVisibility>(_onTogglePasswordVisibility);
     on<ToggleConfirmPasswordVisibility>(_onToggleConfirmPasswordVisibility);
+    on<ClearErrors>(_onClearErrors);
     on<ValidateForm>(_onValidateForm);
     on<RegisterUser>(_onRegisterUser);
-    on<ClearErrors>(_onClearErrors);
   }
 
   void _onUpdateUsername(UpdateUsername event, Emitter<RegistrationState> emit) {
@@ -70,7 +73,7 @@ class RegistrationBloc extends Bloc<RegistrationEvent, RegistrationState> {
     ));
 
     if (usernameError == null && passwordError == null && confirmPasswordError == null) {
-      add(RegisterUser()); // Автоматически регистрируем, если валидно
+      add(RegisterUser());
     }
   }
 
@@ -85,7 +88,7 @@ class RegistrationBloc extends Bloc<RegistrationEvent, RegistrationState> {
     }
   }
 
-  // Валидационные методы (перенесены из контроллера)
+  // Валидационные методы
   String? _validateUsername(String value) {
     if (value.isEmpty) return 'Введите имя пользователя';
     if (value.length < 3) return 'Имя пользователя должно быть не менее 3 символов';

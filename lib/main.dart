@@ -3,21 +3,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'auth/bloc/auth_bloc.dart';
 import 'auth/bloc/registration_bloc.dart';
-import 'controllers/login_controller.dart';
-import 'controllers/registration_controller.dart';
 import 'data/models/exercise_list_model.dart';
 import 'data/repositories/history_repository.dart';
 import 'auth/screens/login_screen.dart';
+import 'questionnaire/bloc/questionnaire_bloc.dart';
 import 'services/auth_service.dart';
 import 'services/exercise_service.dart';
-import 'styles/style.dart';
+import 'core/styles/style.dart';
 import 'package:flutter/material.dart';
 import 'features/sounds/sound_service.dart';
-//import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 
-import 'controllers/questionnaire_controller.dart';
 import 'data/models/history_model.dart';
 import 'data/models/home_screen_model.dart';
 import 'data/models/sound.dart';
@@ -26,7 +23,7 @@ import 'data/models/training_calendar_model.dart';
 import 'data/repositories/questionnaire_repository.dart';
 import 'features/history/history_screen.dart';
 import 'features/profile/profile_screen.dart';
-import 'features/questionnaire/questionnaire_screen.dart';
+import 'questionnaire/screens/questionnaire_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/exercises/exercise_detail_screen.dart';
 import 'data/models/models.dart';
@@ -35,7 +32,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 /* bulat bulат1000T$ */
 void main() async {
-  //debugPaintSizeEnabled = true;
   WidgetsFlutterBinding.ensureInitialized();
 
   await _initializeApp();
@@ -72,10 +68,11 @@ void main() async {
         ChangeNotifierProvider<ExerciseListModel>(
           create: (_) => ExerciseListModel(exerciseService: exerciseService),
         ),
-        ChangeNotifierProxyProvider2<AuthService, QuestionnaireRepository, QuestionnaireController>(
-          create: (_) => QuestionnaireController(null, null),
-          update: (_, authService, repository, controller) => 
-              QuestionnaireController(authService,repository),
+        BlocProvider<QuestionnaireBloc>(
+          create: (context) => QuestionnaireBloc(
+            authService: Provider.of<AuthService>(context, listen: false),
+            repository: Provider.of<QuestionnaireRepository>(context, listen: false),
+          ),
         ),
 
       ],

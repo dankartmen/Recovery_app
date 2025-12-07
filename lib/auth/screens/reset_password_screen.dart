@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
-import '../../styles/style.dart';
+import '../../core/styles/style.dart';
 
+/// Экран установки нового пароля
+/// Позволяет пользователю установить новый пароль после подтверждения имени пользователя
 class ResetPasswordScreen extends StatefulWidget {
   final String username;
 
@@ -267,6 +269,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 
+  /// Сброс пароля пользователя
+  /// Отправляет запрос на смену пароля и обрабатывает результат
   Future<void> _resetPassword() async {
     if (!_formKey.currentState!.validate()) return;
 

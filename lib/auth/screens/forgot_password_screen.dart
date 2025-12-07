@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-
-import '../../styles/style.dart';
+import '../../core/styles/style.dart';
 import 'reset_password_screen.dart';
 
+/// Экран восстановления пароля
+/// Позволяет пользователю ввести имя пользователя для сброса пароля
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -159,15 +160,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
+  /// Обработка отправки формы
+  /// Проверяет валидность формы и переходит на экран установки пароля
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-
     await Future.delayed(const Duration(milliseconds: 500));
-
     final username = _usernameController.text;
-
     if (!mounted) return;
 
     // Переходим сразу на экран установки нового пароля
