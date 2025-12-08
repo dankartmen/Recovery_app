@@ -5,7 +5,7 @@ import '../../data/models/history_model.dart';
 import '../../data/models/home_screen_model.dart';
 import '../../data/models/models.dart';
 import '../../data/repositories/questionnaire_repository.dart';
-import '../exercises/exercises_screen.dart';
+import '../../exercises/screens/exercises_list_screen.dart';
 import '../history/history_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -75,7 +75,7 @@ class HomeScreenState extends State<HomeScreen> {
         recoveryData: _currentRecoveryData,
         onProfileUpdated: _updateProfileData,
       ),
-      ExercisesScreen(recoveryData: _currentRecoveryData),
+      ExercisesListScreen(recoveryData: _currentRecoveryData),
       // ИСПОЛЬЗУЕМ Consumer ДЛЯ ПОЛУЧЕНИЯ АКТУАЛЬНОГО РАСПИСАНИЯ
       Consumer<HomeScreenModel>(
         builder: (context, model, child) {

@@ -1,4 +1,3 @@
-import 'package:hive/hive.dart';
 
 class RecoveryData {
   final int? id;
@@ -133,61 +132,6 @@ class RecoveryData {
       trainingTime.hashCode;
 }
 
-@HiveType(typeId: 2)
-class Exercise {
-  @HiveField(0)
-  final int? id;
-  @HiveField(1)
-  final String title;
-  @HiveField(2)
-  final String generalDescription;
-  @HiveField(3)
-  final Map<String, String> injurySpecificInfo;
-  @HiveField(4)
-  final List<String> suitableFor;
-  @HiveField(5)
-  final int maxPainLevel;
-  @HiveField(6)
-  final List<String> steps;
-  @HiveField(7)
-  final List<String> tags;
-  @HiveField(8)
-  final String? imageUrl;
-
-  Exercise({
-    this.id,
-    required this.title,
-    required this.generalDescription,
-    this.injurySpecificInfo = const {},
-    required this.suitableFor,
-    required this.maxPainLevel,
-    required this.steps,
-    required this.tags,
-    this.imageUrl,
-  });
-
-  factory Exercise.fromJson(Map<String, dynamic> json) {
-    return Exercise(
-      id: json['id'],
-      title: json['title'],
-      generalDescription: json['general_description'],
-      injurySpecificInfo: _parseInjuryInfo(json['injury_specific_info']),
-      suitableFor: List<String>.from(json['suitable_for']),
-      maxPainLevel: json['max_pain_level'],
-      steps: List<String>.from(json['steps']),
-      tags: List<String>.from(json['tags']),
-      imageUrl: json['image_url'],
-    );
-  }
-  // Вспомогательный метод для обработки injury_specific_info
-  static Map<String, String> _parseInjuryInfo(dynamic data) {
-    if (data == null) return {};
-    if (data is Map<String, dynamic>) {
-      return data.map((key, value) => MapEntry(key, value.toString()));
-    }
-    return {};
-  }
-}
 
 // категории травм
 final injuryCategories = {

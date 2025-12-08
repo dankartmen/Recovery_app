@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../data/models/models.dart';
 import '../../data/models/training.dart';
 import '../../data/models/training_calendar_model.dart';
 import '../../core/styles/style.dart';
+import '../../exercises/models/exercise.dart';
 
 /// {@template day_schedule_bottom_sheet}
 /// Виджет нижнего листа для отображения и управления расписанием тренировок на конкретный день.

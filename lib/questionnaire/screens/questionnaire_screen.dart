@@ -123,7 +123,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
                   // Выбор пола
                   DropdownButtonFormField<String>(
-                    value: formData.gender.isNotEmpty ? formData.gender : null,
+                    initialValue: formData.gender.isNotEmpty ? formData.gender : null,
                     onChanged: (value) => context.read<QuestionnaireBloc>().add(UpdateGender(value ?? '')),
                     items: const [
                       DropdownMenuItem(value: 'Мужской', child: Text('Мужской')),
@@ -158,7 +158,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
                   // Выбор типа травмы
                   DropdownButtonFormField<String>(
-                    value: formData.mainInjuryType.isNotEmpty ? formData.mainInjuryType : null,
+                    initialValue: formData.mainInjuryType.isNotEmpty ? formData.mainInjuryType : null,
                     onChanged: (value) => context.read<QuestionnaireBloc>().add(UpdateMainInjuryType(value ?? '')),
                     items: injuryCategories.keys
                         .map((category) => DropdownMenuItem(value: category, child: Text(category)))
@@ -170,7 +170,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
                   // Конкретная травма (зависит от типа)
                   DropdownButtonFormField<String>(
-                    value: formData.specificInjury.isNotEmpty ? formData.specificInjury : null,
+                    initialValue: formData.specificInjury.isNotEmpty ? formData.specificInjury : null,
                     onChanged: (value) => context.read<QuestionnaireBloc>().add(UpdateSpecificInjury(value ?? '')),
                     items: (injuryCategories[formData.mainInjuryType] ?? [])
                         .map((injury) => DropdownMenuItem(value: injury, child: Text(injury)))
@@ -208,7 +208,7 @@ class QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
                   // Время тренировок
                   DropdownButtonFormField<String>(
-                    value: formData.trainingTime.isNotEmpty ? formData.trainingTime : null,
+                    initialValue: formData.trainingTime.isNotEmpty ? formData.trainingTime : null,
                     onChanged: (value) => context.read<QuestionnaireBloc>().add(UpdateTrainingTime(value ?? '')),
                     items: const [
                       DropdownMenuItem(value: 'Утро', child: Text('Утро')),

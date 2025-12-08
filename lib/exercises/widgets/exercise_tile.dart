@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../data/models/models.dart';
 import '../../core/styles/style.dart';
+import '../models/exercise.dart';
 
 class ExerciseTile extends StatelessWidget {
   final Exercise exercise;

@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'models.dart'; 
+import '../../exercises/models/exercise.dart';
 
 class Training {
   final int id;

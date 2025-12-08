@@ -6,6 +6,9 @@ import 'auth/bloc/registration_bloc.dart';
 import 'data/models/exercise_list_model.dart';
 import 'data/repositories/history_repository.dart';
 import 'auth/screens/login_screen.dart';
+import 'exercises/bloc/exercise_bloc.dart';
+import 'exercises/bloc/exercise_list_bloc.dart';
+import 'exercises/models/exercise.dart';
 import 'questionnaire/bloc/questionnaire_bloc.dart';
 import 'services/auth_service.dart';
 import 'services/exercise_service.dart';
@@ -25,7 +28,7 @@ import 'features/history/history_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'questionnaire/screens/questionnaire_screen.dart';
 import 'features/home/home_screen.dart';
-import 'features/exercises/exercise_detail_screen.dart';
+import 'exercises/screens/exercise_detail_screen.dart';
 import 'data/models/models.dart';
 import 'features/sounds/sound_selection_dialog.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -44,8 +47,7 @@ void main() async {
   final trainingCalendarModel = TrainingCalendarModel();
   final questionnaireRepository = QuestionnaireRepository();
   final homeScreenModel = HomeScreenModel(trainingCalendarModel);
-  final exerciseService = ExerciseService(authService: authService);
-  
+
   // Запуск приложения с MultiProvider для управления состоянием
   runApp(
     MultiProvider(
@@ -65,8 +67,16 @@ void main() async {
         ),
         Provider<QuestionnaireRepository>.value(value: questionnaireRepository),
         ChangeNotifierProvider.value(value: homeScreenModel),
-        ChangeNotifierProvider<ExerciseListModel>(
-          create: (_) => ExerciseListModel(exerciseService: exerciseService),
+        BlocProvider<ExerciseListBloc>(
+          create: (context) => ExerciseListBloc(
+            exerciseService: Provider.of<ExerciseService>(context, listen: false),
+          ),
+        ),
+        BlocProvider<ExerciseExecutionBloc>(
+          create: (context) => ExerciseExecutionBloc(
+            exercise: exercise, // Передавать в screen
+            historyRepository: Provider.of<HistoryRepository>(context, listen: false),
+          ),
         ),
         BlocProvider<QuestionnaireBloc>(
           create: (context) => QuestionnaireBloc(

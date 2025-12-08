@@ -12,6 +12,7 @@ import '../../data/models/training_schedule.dart';
 import '../../data/models/home_screen_model.dart';
 import 'package:intl/intl.dart';
 import '../../core/styles/style.dart';
+import '../../exercises/models/exercise.dart';
 import 'pdf_preview_screen.dart';
 import '../training_calendar/day_schedule_bottom_sheet.dart';
 
