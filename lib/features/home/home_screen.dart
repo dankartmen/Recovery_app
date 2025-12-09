@@ -6,7 +6,7 @@ import '../../data/models/home_screen_model.dart';
 import '../../data/models/models.dart';
 import '../../data/repositories/questionnaire_repository.dart';
 import '../../exercises/screens/exercises_list_screen.dart';
-import '../history/history_screen.dart';
+import '../../history/screens/history_screen.dart';
 import '../profile/profile_screen.dart';
 
 // Главный экран с навигацией между разделами

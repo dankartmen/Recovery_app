@@ -8,6 +8,7 @@ import 'data/repositories/history_repository.dart';
 import 'auth/screens/login_screen.dart';
 import 'exercises/bloc/exercise_list_bloc.dart';
 import 'exercises/models/exercise.dart';
+import 'history/bloc/history_bloc.dart';
 import 'questionnaire/bloc/questionnaire_bloc.dart';
 import 'services/auth_service.dart';
 import 'services/exercise_service.dart';
@@ -23,7 +24,7 @@ import 'data/models/sound.dart';
 import 'data/models/training_calendar_model.dart';
 
 import 'data/repositories/questionnaire_repository.dart';
-import 'features/history/history_screen.dart';
+import 'history/screens/history_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'questionnaire/screens/questionnaire_screen.dart';
 import 'features/home/home_screen.dart';
@@ -60,7 +61,11 @@ void main() async {
             authService: Provider.of<AuthService>(context, listen: false),
           ),
         ),
-        ChangeNotifierProvider<HistoryModel>.value(value: historyModel),
+        BlocProvider<HistoryBloc>(
+          create: (context) => HistoryBloc(
+            repository: Provider.of<HistoryRepository>(context, listen: false),
+          ),
+        ),
         ChangeNotifierProvider<TrainingCalendarModel>.value(
           value: trainingCalendarModel,
         ),
@@ -91,13 +96,6 @@ void main() async {
 
 // Инициализация Hive и сервисов
 Future<void> _initializeApp() async {
-  // await Hive.initFlutter();
-
-  // // Регистрация адаптеров для хранения моделей в Hive
-  // Hive.registerAdapter(ExerciseAdapter());
-  // Hive.registerAdapter(TimeOfDayAdapter());
-  // await Hive.openBox<TrainingSchedule>('training_schedule');
-
   await SoundService.init(); // Инициализация звукового сервиса
 }
 

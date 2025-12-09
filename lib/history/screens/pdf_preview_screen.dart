@@ -14,12 +14,14 @@ import '../../data/models/models.dart';
 import '../../core/styles/style.dart';
 
 class PdfPreviewScreen extends StatelessWidget {
-  final Future<Uint8List> Function() generatePdf;
+  final List<ExerciseHistory> historyList;
+  final RecoveryData recoveryData;
   final String fileName;
 
   const PdfPreviewScreen({
     super.key,
-    required this.generatePdf,
+    required this.historyList,
+    required this.recoveryData,
     required this.fileName,
   });
 
@@ -29,10 +31,7 @@ class PdfPreviewScreen extends StatelessWidget {
   }
 
   // Метод для генерации PDF и возврата Uint8List
-  static Future<Uint8List> generateHistoryPdf({
-    required List<ExerciseHistory> historyList,
-    required RecoveryData recoveryData,
-  }) async {
+  Future<Uint8List> generateHistoryPdf(PdfPageFormat format) async {
     final pdf = pw.Document();
 
     // Загружаем шрифт
@@ -47,7 +46,7 @@ class PdfPreviewScreen extends StatelessWidget {
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: format,
         margin: pw.EdgeInsets.all(32),
         build:
             (context) => [
@@ -334,7 +333,7 @@ class PdfPreviewScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: () async {
-              final pdfBytes = await generatePdf();
+              final pdfBytes = await generateHistoryPdf(PdfPageFormat.a4);
               if (!context.mounted) return;
               await _savePdf(pdfBytes, fileName, context);
             },
@@ -343,7 +342,7 @@ class PdfPreviewScreen extends StatelessWidget {
         ],
       ),
       body: PdfPreview(
-        build: (format) => generatePdf(),
+        build: generateHistoryPdf,
         canChangePageFormat: false,
         canChangeOrientation: false,
         canDebug: false,
