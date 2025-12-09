@@ -8,7 +8,6 @@ import '../../data/models/sound.dart';
 import '../../data/repositories/history_repository.dart';
 import '../../features/sounds/sound_service.dart';
 import '../models/exercise.dart';
-import '../models/exercise_execution_state.dart'; // Exercise, ExerciseHistory
 
 part 'exercise_event.dart';
 part 'exercise_state.dart';
@@ -17,7 +16,7 @@ part 'exercise_state.dart';
 /// BLoC для выполнения упражнения.
 /// Управляет таймером, прогрессом, уровнем боли и сохранением истории.
 /// {@endtemplate}
-class ExerciseExecutionBloc extends Bloc<ExerciseExecutionEvent, ExerciseExecutionState> {
+class ExerciseExecutionBloc extends Bloc<ExerciseExecutionEvent, ExerciseState> {
   final Exercise exercise;
   final HistoryRepository historyRepository;
   Timer? _timer;
@@ -52,7 +51,11 @@ class ExerciseExecutionBloc extends Bloc<ExerciseExecutionEvent, ExerciseExecuti
 
   void _onStartSet(StartSet event, Emitter<ExerciseState> emit) {
     _timer?.cancel();
-    final newState = state.copyWith(
+    
+    // Приводим state к ExerciseExecutionState
+    final currentState = state as ExerciseExecutionState;
+    
+    final newState = currentState.copyWith(
       remainingSeconds: event.duration,
       isRunning: true,
       currentSetDuration: event.duration,
@@ -60,45 +63,49 @@ class ExerciseExecutionBloc extends Bloc<ExerciseExecutionEvent, ExerciseExecuti
     emit(newState);
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (state.remainingSeconds > 0) {
-        final updated = state.copyWith(
-          remainingSeconds: state.remainingSeconds - 1,
-          totalDurationSeconds: state.totalDurationSeconds + 1,
-          progress: (state.completedSets + (1 - (state.remainingSeconds / state.currentSetDuration))) / (event.sets + 1),
+      if (currentState.remainingSeconds > 0) {
+        final updated = currentState.copyWith(
+          remainingSeconds: currentState.remainingSeconds - 1,
+          totalDurationSeconds: currentState.totalDurationSeconds + 1,
+          progress: (currentState.completedSets + (1 - (currentState.remainingSeconds / currentState.currentSetDuration))) / (event.sets + 1),
         );
         emit(updated);
       } else {
         timer.cancel();
-        final completed = state.copyWith(
+        final completed = currentState.copyWith(
           isRunning: false,
-          completedSets: state.completedSets + 1,
+          completedSets: currentState.completedSets + 1,
           remainingSeconds: 0,
         );
         emit(completed);
         if (completed.completedSets >= event.sets) {
-          add(CompleteExercise());
+          add(const CompleteExercise());
         }
       }
     });
   }
 
   void _onUpdatePainLevel(UpdatePainLevel event, Emitter<ExerciseState> emit) {
-    emit(state.copyWith(painLevel: event.level));
+    final currentState = state as ExerciseExecutionState;
+    emit(currentState.copyWith(painLevel: event.level));
   }
 
   Future<void> _onCompleteExercise(CompleteExercise event, Emitter<ExerciseState> emit) async {
     try {
+      final currentState = state as ExerciseExecutionState;
+      
       final newHistory = ExerciseHistory(
         exerciseName: exercise.title,
         dateTime: DateTime.now(),
-        duration: Duration(seconds: state.totalDurationSeconds),
-        sets: state.completedSets,
+        duration: Duration(seconds: currentState.totalDurationSeconds),
+        sets: currentState.completedSets,
         notes: event.notes ?? notesController.text,
-        painLevel: event.painLevel ?? state.painLevel,
+        painLevel: event.painLevel ?? currentState.painLevel,
       );
+      
       final result = await historyRepository.addHistory(newHistory);
       if (result > 0) {
-        emit(state.copyWith(isExerciseCompleted: true));
+        emit(currentState.copyWith(isExerciseCompleted: true));
       } else {
         emit(ExerciseErrorState(message: 'Ошибка сохранения истории'));
       }
@@ -108,21 +115,22 @@ class ExerciseExecutionBloc extends Bloc<ExerciseExecutionEvent, ExerciseExecuti
     _resetExercise();
   }
 
-  void _onSkipExercise(SkipExercise event, Emitter<ExerciseExecutionState> emit) {
+  void _onSkipExercise(SkipExercise event, Emitter<ExerciseState> emit) {
     _resetExercise();
     emit(ExerciseExecutionState.initial());
   }
 
-  void _onSetDuration(SetDuration event, Emitter<ExerciseExecutionState> emit) {
-    emit(state.copyWith(currentSetDuration: event.duration));
+  void _onSetDuration(SetDuration event, Emitter<ExerciseState> emit) {
+    final currentState = state as ExerciseExecutionState;
+    emit(currentState.copyWith(currentSetDuration: event.duration));
   }
 
-  Future<void> _onToggleSound(ToggleSound event, Emitter<ExerciseExecutionState> emit) async {
+  Future<void> _onToggleSound(ToggleSound event, Emitter<ExerciseState> emit) async {
     if (event.sound != null) {
       _selectedSound = event.sound;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('selected_sound_path', event.sound!.path);
-      await SoundService.previewSound(event.sound!); // Предпрослушивание
+      await SoundService.previewSound(_selectedSound!);
     }
   }
 
@@ -131,11 +139,6 @@ class ExerciseExecutionBloc extends Bloc<ExerciseExecutionEvent, ExerciseExecuti
     notesController.clear();
   }
 
-  /// Форматирование времени для таймера
-  /// Принимает:
-  /// - [seconds] - секунды для форматирования
-  /// Возвращает:
-  /// - строку в формате MM:SS
   String formatTime(int seconds) {
     final minutes = (seconds / 60).floor();
     final remainingSeconds = seconds % 60;

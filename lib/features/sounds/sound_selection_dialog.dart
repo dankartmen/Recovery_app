@@ -1,9 +1,11 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:async';
 
-import '../../data/models/sound.dart';
-import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+
+import '../../data/models/sound.dart';
 import 'sound_service.dart';
 
 /// {@template sound_selection_dialog}
@@ -15,8 +17,15 @@ class SoundSelectionDialog extends StatefulWidget {
   /// Текущий выбранный звук
   final Sound? currentSound;
 
+  /// Колбэк при выборе звука
+  final Function(Sound)? onSoundSelected;
+  
   /// {@macro sound_selection_dialog}
-  const SoundSelectionDialog({super.key, this.currentSound});
+  const SoundSelectionDialog({
+    super.key,
+    this.currentSound,
+    this.onSoundSelected,
+  });
 
   @override
   SoundSelectionDialogState createState() => SoundSelectionDialogState();

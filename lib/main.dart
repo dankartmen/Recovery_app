@@ -6,7 +6,6 @@ import 'auth/bloc/registration_bloc.dart';
 import 'data/models/exercise_list_model.dart';
 import 'data/repositories/history_repository.dart';
 import 'auth/screens/login_screen.dart';
-import 'exercises/bloc/exercise_bloc.dart';
 import 'exercises/bloc/exercise_list_bloc.dart';
 import 'exercises/models/exercise.dart';
 import 'questionnaire/bloc/questionnaire_bloc.dart';
@@ -72,12 +71,11 @@ void main() async {
             exerciseService: Provider.of<ExerciseService>(context, listen: false),
           ),
         ),
-        BlocProvider<ExerciseExecutionBloc>(
-          create: (context) => ExerciseExecutionBloc(
-            exercise: exercise, // Передавать в screen
-            historyRepository: Provider.of<HistoryRepository>(context, listen: false),
-          ),
-        ),
+        // BlocProvider<ExerciseExecutionBloc>(
+        //   create: (context) => ExerciseExecutionBloc(
+        //     historyRepository: Provider.of<HistoryRepository>(context, listen: false),
+        //   ),
+        // ),
         BlocProvider<QuestionnaireBloc>(
           create: (context) => QuestionnaireBloc(
             authService: Provider.of<AuthService>(context, listen: false),
@@ -111,23 +109,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Получение экземпляров моделей из Provider
     final authService = Provider.of<AuthService>(context, listen: false);
-    final historyModel = Provider.of<HistoryModel>(context, listen: false);
-    final trainingCalendarModel = Provider.of<TrainingCalendarModel>(
-      context,
-      listen: false,
-    );
-    final exerciseListModel = Provider.of<ExerciseListModel>(
-      context,
-      listen: false,
-    );
-
-    // Инициализация TrainingCalendarModel с зависимостями
-    trainingCalendarModel.initialize(
-      authService,
-      historyModel,
-      exerciseListModel,
-    );
-
     // Определение стартового экрана в зависимости от состояния авторизации
     Widget startScreen;
     if (authService.isLoading) {

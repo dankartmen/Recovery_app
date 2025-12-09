@@ -84,7 +84,7 @@ class ExercisesListScreenState extends State<ExercisesListScreen> {
                   Icon(
                     Icons.error_outline,
                     size: 72,
-                    color: healthSecondaryColor.withOpacity(0.5),
+                    color: healthSecondaryColor.withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -142,7 +142,7 @@ class ExercisesListScreenState extends State<ExercisesListScreen> {
                   Icon(
                     Icons.search_off,
                     size: 72,
-                    color: healthSecondaryColor.withOpacity(0.5),
+                    color: healthSecondaryColor.withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 20),
                   Text(

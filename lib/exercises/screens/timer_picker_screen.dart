@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/styles/style.dart';
+import '../../core/styles/style.dart';
 
 class TimerPickerScreen extends StatefulWidget {
   const TimerPickerScreen({super.key});

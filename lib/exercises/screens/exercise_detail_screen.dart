@@ -16,6 +16,8 @@ class ExerciseDetailScreen extends StatelessWidget {
 
   const ExerciseDetailScreen({super.key, required this.exercise});
 
+  
+  
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -33,10 +35,26 @@ class _ExerciseDetailContent extends StatelessWidget {
 
   const _ExerciseDetailContent({required this.exercise});
 
+  // Для получения состояния выполнения
+  ExerciseExecutionState? _getExecutionState(BuildContext context) {
+    final state = context.watch<ExerciseExecutionBloc>().state;
+    return state is ExerciseExecutionState ? state : null;
+  }
+
+  // Проверки завершения упражнения
+  bool _isExerciseCompleted(BuildContext context) {
+    final state = _getExecutionState(context);
+    return state?.isExerciseCompleted ?? false;
+  }
+
+  // Получение уровня боли из опроса
+  int _getPainLevel(BuildContext context) {
+    final state = _getExecutionState(context);
+    return state?.painLevel ?? 0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bloc = context.watch<ExerciseExecutionBloc>();
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -112,12 +130,14 @@ class _ExerciseDetailContent extends StatelessWidget {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton.icon(
-                    onPressed: bloc.state.isExerciseCompleted
+                    onPressed: _isExerciseCompleted(context)
                         ? null
                         : () => _showTimerPicker(context),
                     icon: const Icon(Icons.play_arrow, color: Colors.white),
                     label: Text(
-                      bloc.state.isExerciseCompleted ? 'Завершено' : 'Начать выполнение',
+                      _isExerciseCompleted(context)
+                        ? 'Завершено' 
+                        : 'Начать выполнение',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -161,7 +181,7 @@ class _ExerciseDetailContent extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 5),
               ),
@@ -237,6 +257,7 @@ class _ExerciseDetailContent extends StatelessWidget {
   }
 
   Widget _buildPainLevelSection(BuildContext context) {
+    final currentPainLevel = _getPainLevel(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -256,7 +277,7 @@ class _ExerciseDetailContent extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 5),
               ),
@@ -270,7 +291,7 @@ class _ExerciseDetailContent extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: (context.watch<ExerciseExecutionBloc>().state.painLevel == level)
+                    color: level == currentPainLevel
                         ? Colors.blue.shade50
                         : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(8),
@@ -297,7 +318,7 @@ class _ExerciseDetailContent extends StatelessWidget {
           ),
         ),
         // Предупреждение при высокой боли
-        if (context.watch<ExerciseExecutionBloc>().state.painLevel >= 4)
+        if (currentPainLevel >= 4)
           Container(
             margin: const EdgeInsets.only(top: 16),
             padding: const EdgeInsets.all(12),

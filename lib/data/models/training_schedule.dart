@@ -3,22 +3,16 @@ import 'training.dart';
 
 @HiveType(typeId: 4)
 class TrainingSchedule {
-  @HiveField(0)
   final Map<DateTime, List<Training>> trainings;
 
-  @HiveField(1)
   final String injuryType;
 
-  @HiveField(2, defaultValue: 0)
   final int id;
 
-  @HiveField(3, defaultValue: true)
   final bool isActive;
 
-  @HiveField(4, defaultValue: 0)
   final int questionnaireId;
 
-  @HiveField(5, defaultValue: '')
   final String specificInjury;
 
   TrainingSchedule({
@@ -67,6 +61,24 @@ class TrainingSchedule {
       'specific_injury': specificInjury,
       'trainings': trainingsList,
     };
+  }
+
+  TrainingSchedule copyWith({
+    Map<DateTime, List<Training>>? trainings,
+    String? injuryType,
+    int? id,
+    bool? isActive,
+    int? questionnaireId,
+    String? specificInjury,
+  }) {
+    return TrainingSchedule(
+      trainings: trainings ?? this.trainings,
+      injuryType: injuryType ?? this.injuryType,
+      id: id ?? this.id,
+      isActive: isActive ?? this.isActive,
+      questionnaireId: questionnaireId ?? this.questionnaireId,
+      specificInjury: specificInjury ?? this.specificInjury,
+    );
   }
 
   static TrainingSchedule empty() {
