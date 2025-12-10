@@ -1,4 +1,5 @@
 
+import 'package:auth_test/home/bloc/home_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'auth/bloc/auth_bloc.dart';
@@ -10,8 +11,8 @@ import 'exercises/bloc/exercise_list_bloc.dart';
 import 'exercises/models/exercise.dart';
 import 'history/bloc/history_bloc.dart';
 import 'questionnaire/bloc/questionnaire_bloc.dart';
-import 'services/auth_service.dart';
-import 'services/exercise_service.dart';
+import 'core/services/auth_service.dart';
+import 'core/services/exercise_service.dart';
 import 'core/styles/style.dart';
 import 'package:flutter/material.dart';
 import 'features/sounds/sound_service.dart';
@@ -27,11 +28,15 @@ import 'data/repositories/questionnaire_repository.dart';
 import 'history/screens/history_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'questionnaire/screens/questionnaire_screen.dart';
-import 'features/home/home_screen.dart';
+import 'home/home_screen.dart';
 import 'exercises/screens/exercise_detail_screen.dart';
 import 'data/models/models.dart';
 import 'features/sounds/sound_selection_dialog.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'core/services/questionnaire_service.dart';
+import 'core/services/training_service.dart';
+import 'training/bloc/training_bloc.dart';
 
 /* bulat bulат1000T$ */
 void main() async {
@@ -43,16 +48,35 @@ void main() async {
   final authService = AuthService();
   await authService.initialize(); // Асинхронная авторизация пользователя
 
-  final historyModel = HistoryModel(HistoryRepository(authService));
+  final historyRepository = HistoryRepository(authService);
   final trainingCalendarModel = TrainingCalendarModel();
   final questionnaireRepository = QuestionnaireRepository();
   final homeScreenModel = HomeScreenModel(trainingCalendarModel);
+  final questionnaireService = QuestionnaireService(); // Создан экземпляр
+  final trainingService = TrainingService(authService); // Создан экземпляр
+  final exerciseService = ExerciseService(authService: authService); // Создан экземпляр
+  final exerciseListModel = ExerciseListModel(exerciseService: exerciseService); // Создан экземпляр, если используется
 
   // Запуск приложения с MultiProvider для управления состоянием
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthService>.value(value: authService),
+        
+        // Репозитории
+        Provider<HistoryRepository>.value(value: historyRepository),
+        Provider<QuestionnaireRepository>.value(value: questionnaireRepository),
+        
+        // Сервисы
+        Provider<QuestionnaireService>.value(value: questionnaireService), // Добавлено
+        Provider<TrainingService>.value(value: trainingService), // Добавлено
+        Provider<ExerciseService>.value(value: exerciseService), // Добавлено
+        
+        // Модели
+        ChangeNotifierProvider.value(value: homeScreenModel),
+        Provider<ExerciseListModel>.value(value: exerciseListModel), // Добавлено
+        
+        // BLoCs
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc(authService: Provider.of<AuthService>(context, listen: false)),
         ),
@@ -66,28 +90,31 @@ void main() async {
             repository: Provider.of<HistoryRepository>(context, listen: false),
           ),
         ),
-        ChangeNotifierProvider<TrainingCalendarModel>.value(
-          value: trainingCalendarModel,
+        BlocProvider<TrainingBloc>(
+          create: (context) => TrainingBloc(
+            authService: Provider.of<AuthService>(context, listen: false),
+            questionnaireService: Provider.of<QuestionnaireService>(context, listen: false),
+            historyRepository: Provider.of<HistoryRepository>(context, listen: false),
+            exerciseListModel: Provider.of<ExerciseListModel>(context, listen: false),
+            trainingService: Provider.of<TrainingService>(context, listen: false), // Исправлено
+          ),
         ),
-        Provider<QuestionnaireRepository>.value(value: questionnaireRepository),
-        ChangeNotifierProvider.value(value: homeScreenModel),
         BlocProvider<ExerciseListBloc>(
           create: (context) => ExerciseListBloc(
             exerciseService: Provider.of<ExerciseService>(context, listen: false),
           ),
         ),
-        // BlocProvider<ExerciseExecutionBloc>(
-        //   create: (context) => ExerciseExecutionBloc(
-        //     historyRepository: Provider.of<HistoryRepository>(context, listen: false),
-        //   ),
-        // ),
         BlocProvider<QuestionnaireBloc>(
           create: (context) => QuestionnaireBloc(
             authService: Provider.of<AuthService>(context, listen: false),
             repository: Provider.of<QuestionnaireRepository>(context, listen: false),
           ),
         ),
-
+        BlocProvider<HomeBloc>(
+          create: (context) => HomeBloc(
+            trainingBloc: Provider.of<TrainingBloc>(context, listen: false),
+          ),
+        ),
       ],
       child: MyApp(),
     ),

@@ -1,7 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../services/exercise_service.dart';
+import '../../core/services/exercise_service.dart';
 import '../models/exercise.dart'; // Exercise
 
 part 'exercise_list_event.dart';

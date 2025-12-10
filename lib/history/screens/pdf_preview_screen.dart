@@ -16,13 +16,11 @@ import '../../core/styles/style.dart';
 class PdfPreviewScreen extends StatelessWidget {
   final List<ExerciseHistory> historyList;
   final RecoveryData recoveryData;
-  final String fileName;
 
   const PdfPreviewScreen({
     super.key,
     required this.historyList,
     required this.recoveryData,
-    required this.fileName,
   });
 
   static Future<pw.Font> _loadFont() async {
@@ -335,7 +333,7 @@ class PdfPreviewScreen extends StatelessWidget {
             onPressed: () async {
               final pdfBytes = await generateHistoryPdf(PdfPageFormat.a4);
               if (!context.mounted) return;
-              await _savePdf(pdfBytes, fileName, context);
+              await _savePdf(pdfBytes, _generateFileName(), context);
             },
             tooltip: 'Сохранить отчет',
           ),
@@ -348,6 +346,15 @@ class PdfPreviewScreen extends StatelessWidget {
         canDebug: false,
       ),
     );
+  }
+
+  String _generateFileName() {
+    final name = recoveryData.name.isNotEmpty
+        ? recoveryData.name.replaceAll(' ', '_')
+        : 'patient';
+    final now = DateTime.now();
+    final formattedDate = DateFormat('yyyy-MM-dd_HH-mm-ss').format(now);
+    return 'RehabReport_${name}_$formattedDate.pdf';
   }
 
   Future<void> _savePdf(

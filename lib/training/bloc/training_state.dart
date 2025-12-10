@@ -4,13 +4,22 @@ abstract class TrainingState extends Equatable {
   const TrainingState();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
+/// {@template training_initial}
+/// Начальное состояние тренировок.
+/// {@endtemplate}
 class TrainingInitial extends TrainingState {}
 
+/// {@template training_loading}
+/// Состояние загрузки тренировок.
+/// {@endtemplate}
 class TrainingLoading extends TrainingState {}
 
+/// {@template training_loaded}
+/// Состояние загруженных тренировок.
+/// {@endtemplate}
 class TrainingLoaded extends TrainingState {
   final TrainingSchedule schedule;
   final List<Training>? dayTrainings;
@@ -31,14 +40,17 @@ class TrainingLoaded extends TrainingState {
   }
 
   @override
-  List<Object> get props => [schedule, dayTrainings ?? []];
+  List<Object?> get props => [schedule, dayTrainings];
 }
 
+/// {@template training_error}
+/// Состояние ошибки тренировок.
+/// {@endtemplate}
 class TrainingError extends TrainingState {
   final String message;
 
   const TrainingError({required this.message});
 
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [message];
 }

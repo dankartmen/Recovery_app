@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../data/models/training_schedule.dart';
-import '../data/models/training.dart';
-import '../services/auth_service.dart';
+import '../../data/models/training_schedule.dart';
+import '../../training/models/training.dart';
+import 'auth_service.dart';
 
 class TrainingService {
   static const String baseUrl = 'http://195.225.111.85:8000/schedules';

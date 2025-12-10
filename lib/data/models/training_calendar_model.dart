@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
-import '../../services/questionnaire_service.dart';
-import '../../services/training_service.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/services/questionnaire_service.dart';
+import '../../core/services/training_service.dart';
 import 'exercise_history.dart';
 import 'exercise_list_model.dart';
 import 'history_model.dart';
 import 'models.dart';
-import 'training.dart';
+import '../../training/models/training.dart';
 import 'training_schedule.dart'; 
 
 /// {@template training_calendar_model}

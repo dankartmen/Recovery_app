@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../data/models/models.dart';
+import '../../data/models/models.dart';
 
 /// {@template questionnaire_service}
 /// Сервис для работы с анкетами пользователя.

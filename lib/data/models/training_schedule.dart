@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import 'training.dart';
+import '../../training/models/training.dart';
 
 @HiveType(typeId: 4)
 class TrainingSchedule {

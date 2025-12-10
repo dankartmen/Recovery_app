@@ -2,7 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../services/auth_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/styles/style.dart';
 import 'register_screen.dart';
 import '../bloc/auth_bloc.dart';

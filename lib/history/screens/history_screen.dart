@@ -4,7 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/exercise_history.dart';
 import '../../data/models/models.dart';
-import '../../data/models/training.dart';
+import '../../training/models/training.dart';
 import '../../data/models/training_schedule.dart';
 import 'package:intl/intl.dart';
 import '../../core/styles/style.dart';
@@ -258,7 +258,7 @@ class HistoryScreenState extends State<HistoryScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PdfPreviewScreen(recoveryData: widget.recoveryData, history: history),
+        builder: (context) => PdfPreviewScreen(recoveryData: widget.recoveryData,  historyList: history),
       ),
     );
   }

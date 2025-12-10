@@ -2,7 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../data/models/models.dart';
 import '../../data/repositories/questionnaire_repository.dart';
-import '../../services/auth_service.dart';
+import '../../core/services/auth_service.dart';
 import '../models/editable_recovery_data.dart'; 
 
 part 'questionnaire_event.dart';

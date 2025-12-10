@@ -1,5 +1,5 @@
 import 'package:auth_test/auth/bloc/auth_bloc.dart';
-import 'package:auth_test/services/auth_service.dart';
+import 'package:auth_test/core/services/auth_service.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flutter_test/flutter_test.dart';

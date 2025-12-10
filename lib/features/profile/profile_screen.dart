@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/models.dart';
-import '../../services/auth_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/styles/style.dart';
 import '../../questionnaire/screens/questionnaire_screen.dart';
 

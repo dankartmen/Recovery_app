@@ -1,5 +1,5 @@
 import '../../exercises/models/exercise.dart';
-import '../../services/exercise_service.dart';
+import '../../core/services/exercise_service.dart';
 import 'package:flutter/material.dart';
 
 class ExerciseListModel extends ChangeNotifier {

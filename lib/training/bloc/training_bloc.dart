@@ -4,346 +4,197 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/exercise_history.dart';
-import '../../data/models/training.dart';
+import '../../data/models/exercise_list_model.dart';
+import '../models/training.dart';
 import '../../data/models/training_schedule.dart';
-import '../../services/training_service.dart';
-
+import '../../data/repositories/history_repository.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/services/questionnaire_service.dart';
+import '../../core/services/training_service.dart';
 
 part 'training_event.dart';
 part 'training_state.dart';
 
 /// {@template training_bloc}
-/// BLoC для управления тренировками и расписанием.
-/// Обеспечивает загрузку, создание, обновление и удаление тренировок.
+/// BLoC для управления календарём тренировок.
+/// Обеспечивает загрузку, сохранение и синхронизацию расписания тренировок
+/// с сервером, а также управление статусами выполнения упражнений.
 /// {@endtemplate}
 class TrainingBloc extends Bloc<TrainingEvent, TrainingState> {
+  final AuthService authService;
+  final QuestionnaireService questionnaireService;
   final TrainingService trainingService;
-  StreamSubscription? _historySubscription;
-  List<ExerciseHistory> _history = [];
+  final HistoryRepository historyRepository; // Для проверки выполнения
+  final ExerciseListModel exerciseListModel; // Для генерации тренировок
 
-  TrainingBloc({required this.trainingService}) : super(TrainingInitial()) {
+  TrainingSchedule? _currentSchedule;
+  List<ExerciseHistory> _history = [];
+  StreamSubscription? _historySubscription;
+
+  TrainingBloc({
+    required this.authService,
+    required this.questionnaireService,
+    required this.trainingService,
+    required this.historyRepository,
+    required this.exerciseListModel,
+  }) : super(TrainingInitial()) {
     on<LoadTrainingSchedule>(_onLoadTrainingSchedule);
+    on<GenerateTrainingSchedule>(_onGenerateTrainingSchedule);
     on<AddTraining>(_onAddTraining);
     on<UpdateTraining>(_onUpdateTraining);
     on<DeleteTraining>(_onDeleteTraining);
     on<UpdateTrainingStatus>(_onUpdateTrainingStatus);
-    on<GenerateTrainingSchedule>(_onGenerateTrainingSchedule);
     on<GetTrainingsForDay>(_onGetTrainingsForDay);
+    on<RefreshHistory>(_onRefreshHistory);
+
+    // Загружаем историю выполнения упражнений
+    _loadHistory();
   }
 
-  /// Загрузка расписания тренировок
-  Future<void> _onLoadTrainingSchedule(
-    LoadTrainingSchedule event,
-    Emitter<TrainingState> emit,
-  ) async {
+  Future<void> _onLoadTrainingSchedule(LoadTrainingSchedule event, Emitter<TrainingState> emit) async {
     emit(TrainingLoading());
     try {
       final schedules = await trainingService.getSchedules(event.userId);
-      final activeSchedule = schedules.firstWhere(
-        (s) => s.isActive,
-        orElse: () => TrainingSchedule.empty(),
-      );
-
-      if (activeSchedule.id != 0) {
-        final trainings = await trainingService.getTrainingsForSchedule(
-          activeSchedule.id,
-        );
-        final schedule = _groupTrainingsIntoSchedule(activeSchedule, trainings);
-        emit(TrainingLoaded(schedule: schedule));
-      } else {
-        emit(TrainingLoaded(schedule: TrainingSchedule.empty()));
-      }
+      _currentSchedule = schedules.isNotEmpty ? schedules.first : TrainingSchedule.empty();
+      final dayTrainings = _getTrainingsForDay(DateTime.now());
+      emit(TrainingLoaded(schedule: _currentSchedule!, dayTrainings: dayTrainings));
     } catch (e) {
-      debugPrint('Ошибка загрузки расписания: $e');
-      emit(TrainingError(message: 'Не удалось загрузить расписание тренировок'));
+      emit(TrainingError(message: 'Ошибка загрузки расписания: $e'));
     }
   }
 
-  /// Добавление новой тренировки
-  Future<void> _onAddTraining(
-    AddTraining event,
-    Emitter<TrainingState> emit,
-  ) async {
-    try {
-      if (state is! TrainingLoaded) return;
-
-      final currentState = state as TrainingLoaded;
-      final scheduleId = currentState.schedule.id;
-
-      if (scheduleId == 0) {
-        throw Exception('Нет активного расписания');
-      }
-
-      // Создание тренировки через сервис
-      final createdTraining = await trainingService.addTraining(
-        scheduleId,
-        event.training,
-      );
-
-      // Обновление локального расписания
-      final updatedSchedule = _addTrainingToSchedule(
-        currentState.schedule,
-        createdTraining,
-      );
-
-      emit(currentState.copyWith(schedule: updatedSchedule));
-    } catch (e) {
-      debugPrint('Ошибка добавления тренировки: $e');
-      emit(TrainingError(message: 'Не удалось добавить тренировку: $e'));
-    }
-  }
-
-  /// Обновление тренировки
-  Future<void> _onUpdateTraining(
-    UpdateTraining event,
-    Emitter<TrainingState> emit,
-  ) async {
-    try {
-      if (state is! TrainingLoaded) return;
-
-      final currentState = state as TrainingLoaded;
-      
-      final updatedTraining = await trainingService.updateTraining(
-        event.scheduleId,
-        event.oldTraining.id,
-        event.updatedTraining,
-      );
-
-      // Обновление локального расписания
-      final updatedSchedule = _updateTrainingInSchedule(
-        currentState.schedule,
-        updatedTraining,
-      );
-
-      emit(currentState.copyWith(schedule: updatedSchedule));
-    } catch (e) {
-      debugPrint('Ошибка обновления тренировки: $e');
-      emit(TrainingError(message: 'Не удалось обновить тренировку: $e'));
-    }
-  }
-
-  /// Удаление тренировки
-  Future<void> _onDeleteTraining(
-    DeleteTraining event,
-    Emitter<TrainingState> emit,
-  ) async {
-    try {
-      if (state is! TrainingLoaded) return;
-
-      final currentState = state as TrainingLoaded;
-      final scheduleId = currentState.schedule.id;
-
-      await trainingService.deleteTraining(scheduleId, event.training.id);
-
-      // Обновление локального расписания
-      final updatedSchedule = _removeTrainingFromSchedule(
-        currentState.schedule,
-        event.training,
-      );
-
-      emit(currentState.copyWith(schedule: updatedSchedule));
-    } catch (e) {
-      debugPrint('Ошибка удаления тренировки: $e');
-      emit(TrainingError(message: 'Не удалось удалить тренировку: $e'));
-    }
-  }
-
-  /// Обновление статуса выполнения тренировки
-  Future<void> _onUpdateTrainingStatus(
-    UpdateTrainingStatus event,
-    Emitter<TrainingState> emit,
-  ) async {
-    try {
-      if (state is! TrainingLoaded) return;
-
-      final currentState = state as TrainingLoaded;
-      final scheduleId = currentState.schedule.id;
-
-      final updatedTraining = event.training.copyWith(
-        isCompleted: event.isCompleted,
-        completedAt: event.isCompleted ? DateTime.now() : null,
-      );
-
-      await trainingService.updateTraining(
-        scheduleId,
-        event.training.id,
-        updatedTraining,
-      );
-
-      // Обновление локального расписания
-      final updatedSchedule = _updateTrainingInSchedule(
-        currentState.schedule,
-        updatedTraining,
-      );
-
-      emit(currentState.copyWith(schedule: updatedSchedule));
-    } catch (e) {
-      debugPrint('Ошибка обновления статуса: $e');
-      emit(TrainingError(message: 'Не удалось обновить статус тренировки: $e'));
-    }
-  }
-
-  /// Генерация нового расписания
-  Future<void> _onGenerateTrainingSchedule(
-    GenerateTrainingSchedule event,
-    Emitter<TrainingState> emit,
-  ) async {
+  Future<void> _onGenerateTrainingSchedule(GenerateTrainingSchedule event, Emitter<TrainingState> emit) async {
     emit(TrainingLoading());
     try {
-      final newSchedule = await trainingService.generateSchedule(
-        event.questionnaireId,
-      );
-
-      if (newSchedule.id != 0) {
-        final trainings = await trainingService.getTrainingsForSchedule(
-          newSchedule.id,
-        );
-        final schedule = _groupTrainingsIntoSchedule(newSchedule, trainings);
-        emit(TrainingLoaded(schedule: schedule));
-      } else {
-        emit(TrainingError(message: 'Не удалось сгенерировать расписание'));
-      }
+      final schedule = await trainingService.generateSchedule(event.questionnaireId);
+      _currentSchedule = schedule;
+      emit(TrainingLoaded(schedule: schedule));
     } catch (e) {
-      debugPrint('Ошибка генерации расписания: $e');
-      emit(TrainingError(message: 'Не удалось сгенерировать расписание: $e'));
+      emit(TrainingError(message: 'Ошибка генерации расписания: $e'));
     }
   }
 
-  /// Получение тренировок на конкретный день
-  Future<void> _onGetTrainingsForDay(
-    GetTrainingsForDay event,
-    Emitter<TrainingState> emit,
-  ) async {
+  Future<void> _onAddTraining(AddTraining event, Emitter<TrainingState> emit) async {
+    if (_currentSchedule == null) return;
     try {
-      if (state is! TrainingLoaded) return;
-
-      final currentState = state as TrainingLoaded;
-      final normalizedDay = DateTime(
-        event.day.year,
-        event.day.month,
-        event.day.day,
-      );
-      
-      final dayTrainings = currentState.schedule.trainings[normalizedDay] ?? [];
-
-      emit(currentState.copyWith(dayTrainings: dayTrainings));
+      final createdTraining = await trainingService.addTraining(_currentSchedule!.id, event.training);
+      _currentSchedule = _addTrainingToSchedule(_currentSchedule!, createdTraining);
+      emit(TrainingLoaded(schedule: _currentSchedule!));
     } catch (e) {
-      debugPrint('Ошибка получения тренировок на день: $e');
-      // Не эмитим ошибку, просто оставляем пустой список
-      if (state is TrainingLoaded) {
-        final currentState = state as TrainingLoaded;
-        emit(currentState.copyWith(dayTrainings: []));
-      }
+      emit(TrainingError(message: 'Ошибка добавления тренировки: $e'));
     }
   }
 
-  // --- Вспомогательные методы ---
-
-  /// Группировка тренировок по датам
-  TrainingSchedule _groupTrainingsIntoSchedule(
-    TrainingSchedule schedule,
-    List<Training> allTrainings,
-  ) {
-    final trainingsMap = <DateTime, List<Training>>{};
-    
-    for (final training in allTrainings) {
-      final normalizedDate = DateTime(
-        training.date.year,
-        training.date.month,
-        training.date.day,
-      );
-      trainingsMap.putIfAbsent(normalizedDate, () => <Training>[]).add(training);
+  Future<void> _onUpdateTraining(UpdateTraining event, Emitter<TrainingState> emit) async {
+    if (_currentSchedule == null) return;
+    try {
+      final updatedTraining = await trainingService.updateTraining(_currentSchedule!.id, event.oldTraining.id, event.updatedTraining);
+      _currentSchedule = _updateTrainingInSchedule(_currentSchedule!, updatedTraining);
+      emit(TrainingLoaded(schedule: _currentSchedule!));
+    } catch (e) {
+      emit(TrainingError(message: 'Ошибка обновления тренировки: $e'));
     }
+  }
 
-    return TrainingSchedule(
-      trainings: trainingsMap,
-      injuryType: schedule.injuryType,
-      id: schedule.id,
-      isActive: schedule.isActive,
-      questionnaireId: schedule.questionnaireId,
-      specificInjury: schedule.specificInjury,
+  Future<void> _onDeleteTraining(DeleteTraining event, Emitter<TrainingState> emit) async {
+    if (_currentSchedule == null) return;
+    try {
+      await trainingService.deleteTraining(_currentSchedule!.id, event.training.id);
+      _currentSchedule = _removeTrainingFromSchedule(_currentSchedule!, event.training);
+      emit(TrainingLoaded(schedule: _currentSchedule!));
+    } catch (e) {
+      emit(TrainingError(message: 'Ошибка удаления тренировки: $e'));
+    }
+  }
+
+  void _onUpdateTrainingStatus(UpdateTrainingStatus event, Emitter<TrainingState> emit) {
+    if (_currentSchedule == null) return;
+    final updatedSchedule = _currentSchedule!.copyWith(
+      trainings: _currentSchedule!.trainings.map((date, trainings) {
+        return MapEntry(
+          date,
+          trainings.map((t) {
+            if (t.id == event.training.id) {
+              return t.copyWith(isCompleted: event.isCompleted);
+            }
+            return t;
+          }).toList(),
+        );
+      }),
     );
+    _currentSchedule = updatedSchedule;
+    emit(TrainingLoaded(schedule: _currentSchedule!));
   }
 
-  /// Добавление тренировки в расписание
-  TrainingSchedule _addTrainingToSchedule(
-    TrainingSchedule schedule,
-    Training training,
-  ) {
+  void _onGetTrainingsForDay(GetTrainingsForDay event, Emitter<TrainingState> emit) {
+    if (state is TrainingLoaded && _currentSchedule != null) {
+      final current = state as TrainingLoaded;
+      final dayTrainings = _getTrainingsForDay(event.day);
+      emit(current.copyWith(dayTrainings: dayTrainings));
+    }
+  }
+
+  void _onRefreshHistory(RefreshHistory event, Emitter<TrainingState> emit) {
+    if (state is TrainingLoaded) {
+      emit(TrainingLoaded(schedule: _currentSchedule!));
+    }
+  }
+
+  // Вспомогательные методы (перенесены из модели)
+  TrainingSchedule _addTrainingToSchedule(TrainingSchedule schedule, Training training) {
     final updatedTrainings = Map<DateTime, List<Training>>.from(schedule.trainings);
-    final normalizedDate = DateTime(
-      training.date.year,
-      training.date.month,
-      training.date.day,
-    );
-
-    updatedTrainings.putIfAbsent(normalizedDate, () => <Training>[]).add(training);
-
+    final normalizedDate = DateTime(training.date.year, training.date.month, training.date.day);
+    updatedTrainings.putIfAbsent(normalizedDate, () => []).add(training);
     return schedule.copyWith(trainings: updatedTrainings);
   }
 
-  /// Обновление тренировки в расписании
-  TrainingSchedule _updateTrainingInSchedule(
-    TrainingSchedule schedule,
-    Training updatedTraining,
-  ) {
+  TrainingSchedule _updateTrainingInSchedule(TrainingSchedule schedule, Training updatedTraining) {
     final updatedTrainings = Map<DateTime, List<Training>>.from(schedule.trainings);
-    final normalizedDate = DateTime(
-      updatedTraining.date.year,
-      updatedTraining.date.month,
-      updatedTraining.date.day,
-    );
-
+    final normalizedDate = DateTime(updatedTraining.date.year, updatedTraining.date.month, updatedTraining.date.day);
     if (updatedTrainings.containsKey(normalizedDate)) {
-      final index = updatedTrainings[normalizedDate]!
-          .indexWhere((t) => t.id == updatedTraining.id);
+      final index = updatedTrainings[normalizedDate]!.indexWhere((t) => t.id == updatedTraining.id);
       if (index != -1) {
         updatedTrainings[normalizedDate]![index] = updatedTraining;
       }
     }
-
     return schedule.copyWith(trainings: updatedTrainings);
   }
 
-  /// Удаление тренировки из расписания
-  TrainingSchedule _removeTrainingFromSchedule(
-    TrainingSchedule schedule,
-    Training training,
-  ) {
+  TrainingSchedule _removeTrainingFromSchedule(TrainingSchedule schedule, Training training) {
     final updatedTrainings = Map<DateTime, List<Training>>.from(schedule.trainings);
-    final normalizedDate = DateTime(
-      training.date.year,
-      training.date.month,
-      training.date.day,
-    );
-
+    final normalizedDate = DateTime(training.date.year, training.date.month, training.date.day);
     if (updatedTrainings.containsKey(normalizedDate)) {
-      updatedTrainings[normalizedDate]!
-          .removeWhere((t) => t.id == training.id);
-      
+      updatedTrainings[normalizedDate]!.removeWhere((t) => t.id == training.id);
       if (updatedTrainings[normalizedDate]!.isEmpty) {
         updatedTrainings.remove(normalizedDate);
       }
     }
-
     return schedule.copyWith(trainings: updatedTrainings);
   }
 
-  /// Проверка совпадения дат
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+  /// Загрузка истории упражнений
+  Future<void> _loadHistory() async {
+    try {
+      _history = await historyRepository.getAllHistory();
+    } catch (e) {
+      debugPrint('Ошибка загрузки истории: $e');
+    }
+  }
+  
+  List<Training> _getTrainingsForDay(DateTime day) {
+    if (_currentSchedule == null) return [];
+    final normalizedDate = DateTime(day.year, day.month, day.day);
+    return _currentSchedule!.trainings[normalizedDate] ?? [];
   }
 
-  /// Проверка выполнения тренировки
-  bool isTrainingCompleted(Training training) {
-    return _history.any((h) => 
+  bool _isTrainingCompleted(Training training) {
+    return _history.any((h) =>
       h.exerciseName == training.title && _isSameDay(h.dateTime, training.date)
     );
   }
 
-  /// Установка истории для проверки выполнения
-  void setHistory(List<ExerciseHistory> history) {
-    _history = history;
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   @override

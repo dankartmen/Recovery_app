@@ -1,7 +1,7 @@
 import 'dart:convert';
-import '../data/models/models.dart';
-import '../data/repositories/questionnaire_repository.dart';
-import '../data/models/user_model.dart';
+import '../../data/models/models.dart';
+import '../../data/repositories/questionnaire_repository.dart';
+import '../../auth/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
