@@ -1,6 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../../data/models/training_schedule.dart';
+import '../../training/models/training_schedule.dart';
 import '../../training/models/training.dart';
 import 'auth_service.dart';
 
@@ -30,18 +31,33 @@ class TrainingService {
   }
 
   Future<List<TrainingSchedule>> getSchedules(int userId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/users/$userId/schedules'),
-      headers: {'Authorization': _authHeader},
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/$userId/schedules'),
+        headers: {'Authorization': _authHeader},
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return data.map((json) => TrainingSchedule.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load schedules: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => TrainingSchedule.fromJson(json)).toList();
+      } else if (response.statusCode == 403) {
+        // Пользователь не имеет доступа
+        debugPrint('Доступ запрещен для пользователя ID: $userId');
+        return [];
+      } else if (response.statusCode == 404) {
+        // Расписания не найдены
+        debugPrint('Расписания не найдены для пользователя ID: $userId');
+        return [];
+      } else {
+        debugPrint('Ошибка загрузки расписаний: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Ошибка сети при загрузке расписаний: $e');
+      return [];
     }
   }
+
 
   Future<Training> updateTrainingStatus(int scheduleId, int trainingId, bool completed) async {
     final response = await http.put(

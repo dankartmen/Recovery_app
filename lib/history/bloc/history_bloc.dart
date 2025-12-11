@@ -4,7 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
 
-import '../../data/models/exercise_history.dart';
+import '../../exercises/models/exercise_history.dart';
 import '../../data/repositories/history_repository.dart'; // RecoveryData, TrainingSchedule, Training
 
 part 'history_event.dart';

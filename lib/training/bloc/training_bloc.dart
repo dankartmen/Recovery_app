@@ -3,13 +3,10 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import '../../data/models/exercise_history.dart';
-import '../../data/models/exercise_list_model.dart';
+import '../../exercises/models/exercise_history.dart';
 import '../models/training.dart';
-import '../../data/models/training_schedule.dart';
+import '../models/training_schedule.dart';
 import '../../data/repositories/history_repository.dart';
-import '../../core/services/auth_service.dart';
-import '../../core/services/questionnaire_service.dart';
 import '../../core/services/training_service.dart';
 
 part 'training_event.dart';
@@ -21,22 +18,16 @@ part 'training_state.dart';
 /// с сервером, а также управление статусами выполнения упражнений.
 /// {@endtemplate}
 class TrainingBloc extends Bloc<TrainingEvent, TrainingState> {
-  final AuthService authService;
-  final QuestionnaireService questionnaireService;
   final TrainingService trainingService;
   final HistoryRepository historyRepository; // Для проверки выполнения
-  final ExerciseListModel exerciseListModel; // Для генерации тренировок
 
   TrainingSchedule? _currentSchedule;
   List<ExerciseHistory> _history = [];
   StreamSubscription? _historySubscription;
 
   TrainingBloc({
-    required this.authService,
-    required this.questionnaireService,
     required this.trainingService,
     required this.historyRepository,
-    required this.exerciseListModel,
   }) : super(TrainingInitial()) {
     on<LoadTrainingSchedule>(_onLoadTrainingSchedule);
     on<GenerateTrainingSchedule>(_onGenerateTrainingSchedule);
@@ -59,7 +50,9 @@ class TrainingBloc extends Bloc<TrainingEvent, TrainingState> {
       final dayTrainings = _getTrainingsForDay(DateTime.now());
       emit(TrainingLoaded(schedule: _currentSchedule!, dayTrainings: dayTrainings));
     } catch (e) {
-      emit(TrainingError(message: 'Ошибка загрузки расписания: $e'));
+      debugPrint('Ошибка загрузки расписания: $e');
+      _currentSchedule = TrainingSchedule.empty();
+      emit(TrainingLoaded(schedule: _currentSchedule!));
     }
   }
 
@@ -140,7 +133,6 @@ class TrainingBloc extends Bloc<TrainingEvent, TrainingState> {
     }
   }
 
-  // Вспомогательные методы (перенесены из модели)
   TrainingSchedule _addTrainingToSchedule(TrainingSchedule schedule, Training training) {
     final updatedTrainings = Map<DateTime, List<Training>>.from(schedule.trainings);
     final normalizedDate = DateTime(training.date.year, training.date.month, training.date.day);

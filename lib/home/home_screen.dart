@@ -53,8 +53,16 @@ class HomeScreenState extends State<HomeScreen> {
         } else if (state is HomeError) {
           return Scaffold(body: Center(child: Text(state.message)));
         } else if (state is HomeLoaded) {
-          // Обновляем schedule если нужно (e.g., для History)
-          _screens[2] = HistoryScreen(recoveryData: _currentRecoveryData, schedule: state.schedule);
+          // Проверяем, есть ли расписание
+          final loadedState = state as HomeLoaded;
+          final hasSchedule = loadedState.schedule.id != 0;
+
+          // Обновляем HistoryScreen с расписанием или без него
+          _screens[2] = HistoryScreen(
+            recoveryData: _currentRecoveryData, 
+            schedule: hasSchedule ? loadedState.schedule : null,
+          );
+          
           return Scaffold(
             body: _screens[_selectedIndex],
             bottomNavigationBar: BottomNavigationBar(

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -56,6 +58,51 @@ class ExercisesListScreenState extends State<ExercisesListScreen> {
     ));
   }
 
+  Widget _buildExercisesList(List<Exercise> exercises) {
+  if (exercises.isEmpty) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_off, size: 72, color: Colors.grey),
+          const SizedBox(height: 20),
+          Text('Нет упражнений', style: TextStyle(fontSize: 20)),
+          Text('Проверьте подключение к серверу'),
+        ],
+      ),
+    );
+  }
+  
+  return ListView.builder(
+    itemCount: exercises.length,
+    itemBuilder: (context, index) {
+      final exercise = exercises[index];
+      return Card(
+        margin: const EdgeInsets.all(8),
+        child: ListTile(
+          title: Text(exercise.title),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(exercise.generalDescription),
+              const SizedBox(height: 4),
+              Text('Подходит для: ${exercise.suitableFor.join(', ')}'),
+              Text('Макс. уровень боли: ${exercise.maxPainLevel}'),
+            ],
+          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ExerciseDetailScreen(exercise: exercise),
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,99 +119,47 @@ class ExercisesListScreenState extends State<ExercisesListScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
-      body: BlocBuilder<ExerciseListBloc, ExerciseListState>(
-        builder: (context, state) {
-          if (state is ExerciseListLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is ExerciseListError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 72,
-                    color: healthSecondaryColor.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Ошибка загрузки',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: healthTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    state.message,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: healthSecondaryTextColor),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _loadExercises,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: healthPrimaryColor,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 14,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Повторить',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            );
+      body: BlocListener<ExerciseListBloc, ExerciseListState>(
+        listener: (context, state) {
+          if (state is ExerciseListLoaded) {
+            // Отладочная информация
+            log('Упражнения загружены: ${state.exercises.length}');
+            for (var ex in state.exercises) {
+              log('Упражнение: ${ex.title}, подходит для: ${ex.suitableFor}, уровень боли: ${ex.maxPainLevel}');
+            }
           }
-
-          final loadedState = state as ExerciseListLoaded;
-          final filteredExercises = _searchQuery.isEmpty
-              ? loadedState.filteredExercises
-              : loadedState.exercises
-                  .where((exercise) =>
-                      exercise.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                      exercise.generalDescription.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                      exercise.tags.any((tag) => tag.toLowerCase().contains(_searchQuery.toLowerCase())))
-                  .toList();
-
-          if (filteredExercises.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.search_off,
-                    size: 72,
-                    color: healthSecondaryColor.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    _searchQuery.isEmpty
-                        ? 'Нет подходящих упражнений'
-                        : 'Ничего не найдено',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: healthTextColor,
+        },
+        child: BlocBuilder<ExerciseListBloc, ExerciseListState>(
+          builder: (context, state) {
+            log('Текущее состояние: ${state.runtimeType}');
+            if (state is ExerciseListLoading || state is ExerciseListInitial) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (state is ExerciseListError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 72,
+                      color: healthSecondaryColor.withValues(alpha: 0.5),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    _searchQuery.isEmpty
-                        ? 'Попробуйте изменить параметры восстановления'
-                        : 'Попробуйте другой запрос',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: healthSecondaryTextColor),
-                  ),
-                  const SizedBox(height: 20),
-                  if (_searchQuery.isEmpty)
+                    const SizedBox(height: 20),
+                    Text(
+                      'Ошибка загрузки',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: healthTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: healthSecondaryTextColor),
+                    ),
+                    const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: _loadExercises,
                       style: ElevatedButton.styleFrom(
@@ -178,55 +173,167 @@ class ExercisesListScreenState extends State<ExercisesListScreen> {
                         ),
                       ),
                       child: const Text(
-                        'Обновить список',
+                        'Повторить',
                         style: TextStyle(color: Colors.white),
                       ),
                     ),
-                ],
-              ),
-            );
-          }
+                  ],
+                ),
+              );
+            } else if (state is ExerciseListLoaded) {
+            log('Количество упражнений: ${state.exercises.length}');
+            log('Фильтрованные: ${state.filteredExercises.length}');
 
-          return Column(
-            children: [
-              // Поле поиска
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: TextField(
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value);
-                    context.read<ExerciseListBloc>().add(UpdateSearchQuery(value));
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Поиск упражнений...',
-                    prefixIcon: const Icon(Icons.search, color: healthSecondaryColor),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+            // Временно отобразим все упражнения без фильтрации
+            //return _buildExercisesList(state.exercises);
+
+            final loadedState = state as ExerciseListLoaded;
+
+            // Фильтрация упражнений
+            List<Exercise> filteredExercises;
+            if (_searchQuery.isEmpty) {
+              filteredExercises = loadedState.filteredExercises;
+            } else {
+              final query = _searchQuery.toLowerCase();
+              filteredExercises = loadedState.exercises
+                  .where((exercise) =>
+                      exercise.title.toLowerCase().contains(query) ||
+                      exercise.generalDescription.toLowerCase().contains(query) ||
+                      exercise.tags.any((tag) => tag.toLowerCase().contains(query)))
+                  .toList();
+            }
+
+            // Отображение пустого списка
+            if (filteredExercises.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Поле поиска (всегда показываем, даже при пустом списке)
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: TextField(
+                        onChanged: (value) {
+                          setState(() => _searchQuery = value);
+                          context.read<ExerciseListBloc>().add(UpdateSearchQuery(value));
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Поиск упражнений...',
+                          prefixIcon: const Icon(Icons.search, color: healthSecondaryColor),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 72,
+                              color: healthSecondaryColor.withValues(alpha: 0.5),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              _searchQuery.isEmpty
+                                  ? 'Нет подходящих упражнений'
+                                  : 'Ничего не найдено',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: healthTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _searchQuery.isEmpty
+                                  ? 'Попробуйте изменить параметры восстановления'
+                                  : 'Попробуйте другой запрос',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16, color: healthSecondaryTextColor),
+                            ),
+                            const SizedBox(height: 20),
+                            if (_searchQuery.isEmpty)
+                              ElevatedButton(
+                                onPressed: _loadExercises,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: healthPrimaryColor,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Обновить список',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  )
+                );
+              }
+
+            // Отображение списка упражнений
+              return Column(
+                children: [
+                  // Поле поиска
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() => _searchQuery = value);
+                        context.read<ExerciseListBloc>().add(UpdateSearchQuery(value));
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Поиск упражнений...',
+                        prefixIcon: const Icon(Icons.search, color: healthSecondaryColor),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              // Список упражнений
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  itemCount: filteredExercises.length,
-                  itemBuilder: (context, index) {
-                    final exercise = filteredExercises[index];
-                    return ExerciseTile(
-                      exercise: exercise,
-                      onTap: () => _navigateToDetail(context, exercise),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+                  // Список упражнений
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      itemCount: filteredExercises.length,
+                      itemBuilder: (context, index) {
+                        final exercise = filteredExercises[index];
+                        return ExerciseTile(
+                          exercise: exercise,
+                          onTap: () => _navigateToDetail(context, exercise),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            }
+            
+            // На всякий случай, если появилось неизвестное состояние
+            return const Center(
+              child: Text('Неизвестное состояние'),
+            );
+          },
+        ),
+      )
     );
   }
 }

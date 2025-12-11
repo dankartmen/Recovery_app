@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'auth/bloc/auth_bloc.dart';
 import 'auth/bloc/registration_bloc.dart';
-import 'data/models/exercise_list_model.dart';
 import 'data/repositories/history_repository.dart';
 import 'auth/screens/login_screen.dart';
 import 'exercises/bloc/exercise_list_bloc.dart';
@@ -19,10 +18,7 @@ import 'features/sounds/sound_service.dart';
 import 'package:provider/provider.dart';
 
 
-import 'data/models/history_model.dart';
-import 'data/models/home_screen_model.dart';
 import 'data/models/sound.dart';
-import 'data/models/training_calendar_model.dart';
 
 import 'data/repositories/questionnaire_repository.dart';
 import 'history/screens/history_screen.dart';
@@ -37,6 +33,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/services/questionnaire_service.dart';
 import 'core/services/training_service.dart';
 import 'training/bloc/training_bloc.dart';
+import 'training/models/training_schedule.dart';
 
 /* bulat bulат1000T$ */
 void main() async {
@@ -49,13 +46,10 @@ void main() async {
   await authService.initialize(); // Асинхронная авторизация пользователя
 
   final historyRepository = HistoryRepository(authService);
-  final trainingCalendarModel = TrainingCalendarModel();
   final questionnaireRepository = QuestionnaireRepository();
-  final homeScreenModel = HomeScreenModel(trainingCalendarModel);
   final questionnaireService = QuestionnaireService(); // Создан экземпляр
   final trainingService = TrainingService(authService); // Создан экземпляр
   final exerciseService = ExerciseService(authService: authService); // Создан экземпляр
-  final exerciseListModel = ExerciseListModel(exerciseService: exerciseService); // Создан экземпляр, если используется
 
   // Запуск приложения с MultiProvider для управления состоянием
   runApp(
@@ -71,10 +65,6 @@ void main() async {
         Provider<QuestionnaireService>.value(value: questionnaireService), // Добавлено
         Provider<TrainingService>.value(value: trainingService), // Добавлено
         Provider<ExerciseService>.value(value: exerciseService), // Добавлено
-        
-        // Модели
-        ChangeNotifierProvider.value(value: homeScreenModel),
-        Provider<ExerciseListModel>.value(value: exerciseListModel), // Добавлено
         
         // BLoCs
         BlocProvider<AuthBloc>(
@@ -92,10 +82,7 @@ void main() async {
         ),
         BlocProvider<TrainingBloc>(
           create: (context) => TrainingBloc(
-            authService: Provider.of<AuthService>(context, listen: false),
-            questionnaireService: Provider.of<QuestionnaireService>(context, listen: false),
             historyRepository: Provider.of<HistoryRepository>(context, listen: false),
-            exerciseListModel: Provider.of<ExerciseListModel>(context, listen: false),
             trainingService: Provider.of<TrainingService>(context, listen: false), // Исправлено
           ),
         ),
@@ -112,7 +99,8 @@ void main() async {
         ),
         BlocProvider<HomeBloc>(
           create: (context) => HomeBloc(
-            trainingBloc: Provider.of<TrainingBloc>(context, listen: false),
+            trainingBloc: BlocProvider.of<TrainingBloc>(context),
+            authService: Provider.of<AuthService>(context, listen: false),
           ),
         ),
       ],
@@ -202,12 +190,18 @@ class MyApp extends StatelessWidget {
         '/history': (context) {
           final args =
               ModalRoute.of(context)!.settings.arguments as RecoveryData;
+          
+          // Получаем schedule из HomeBloc, если он загружен
+          final homeBloc = BlocProvider.of<HomeBloc>(context);
+          TrainingSchedule? schedule;
+          
+          if (homeBloc.state is HomeLoaded) {
+            schedule = (homeBloc.state as HomeLoaded).schedule;
+          }
+          
           return HistoryScreen(
             recoveryData: args,
-            schedule:
-                Provider.of<HomeScreenModel>(
-                  context,
-                ).schedule, // Передача расписания
+            schedule: schedule,
           );
         },
         '/profile':

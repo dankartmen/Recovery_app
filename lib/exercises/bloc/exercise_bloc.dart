@@ -3,7 +3,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../data/models/exercise_history.dart';
+import '../models/exercise_history.dart';
 import '../../data/models/sound.dart';
 import '../../data/repositories/history_repository.dart';
 import '../../features/sounds/sound_service.dart';

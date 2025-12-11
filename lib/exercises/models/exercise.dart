@@ -23,15 +23,15 @@ class Exercise {
 
   factory Exercise.fromJson(Map<String, dynamic> json) {
     return Exercise(
-      id: json['id'],
-      title: json['title'],
-      generalDescription: json['general_description'],
-      injurySpecificInfo: _parseInjuryInfo(json['injury_specific_info']),
-      suitableFor: List<String>.from(json['suitable_for']),
-      maxPainLevel: json['max_pain_level'],
-      steps: List<String>.from(json['steps']),
-      tags: List<String>.from(json['tags']),
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      generalDescription: json['general_description'] ?? '',
+      suitableFor: List<String>.from(json['suitable_for'] ?? []),
+      maxPainLevel: json['max_pain_level'] ?? 0,
+      steps: List<String>.from(json['steps'] ?? []),
+      tags: List<String>.from(json['tags'] ?? []),
       imageUrl: json['image_url'],
+      injurySpecificInfo: _parseInjuryInfo(json['injury_specific_info'])
     );
   }
   // Вспомогательный метод для обработки injury_specific_info

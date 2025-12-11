@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../data/models/exercise_history.dart';
+import '../../exercises/models/exercise_history.dart';
 import '../../data/models/models.dart';
 import '../../core/styles/style.dart';
 
