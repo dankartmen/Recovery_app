@@ -142,6 +142,7 @@ class HistoryScreenState extends State<HistoryScreen> {
       onDaySelected: (selectedDay, focusedDay) {
         context.read<HistoryBloc>().add(SelectDay(day: selectedDay));
       },
+      locale: 'ru_RU',
       calendarBuilders: CalendarBuilders(
         markerBuilder: (context, day, events) {
           final status = _getDayStatus(day, history);

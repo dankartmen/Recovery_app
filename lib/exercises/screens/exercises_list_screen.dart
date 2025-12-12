@@ -26,15 +26,19 @@ class ExercisesListScreen extends StatefulWidget {
   ExercisesListScreenState createState() => ExercisesListScreenState();
 }
 
-class ExercisesListScreenState extends State<ExercisesListScreen> {
+class ExercisesListScreenState extends State<ExercisesListScreen> with AutomaticKeepAliveClientMixin {  
+  @override
+  bool get wantKeepAlive => true;
+
   /// Поисковый запрос для фильтрации упражнений
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    // Загрузка упражнений после построения виджета
-    _loadExercises();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadExercisesIfNeeded();
+    });
   }
 
   /// Навигация к экрану детальной информации об упражнении
@@ -48,6 +52,16 @@ class ExercisesListScreenState extends State<ExercisesListScreen> {
         builder: (context) => ExerciseDetailScreen(exercise: exercise),
       ),
     );
+  }
+
+  /// Метод для загрузки упражнений(только если состояние начальное)
+  void _loadExercisesIfNeeded() {
+    final bloc = context.read<ExerciseListBloc>();
+    final state = bloc.state;
+    
+    if (state is ExerciseListInitial) {
+      _loadExercises();
+    }
   }
 
   /// Метод для загрузки упражнений
@@ -105,6 +119,8 @@ class ExercisesListScreenState extends State<ExercisesListScreen> {
 }
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -187,20 +203,14 @@ class ExercisesListScreenState extends State<ExercisesListScreen> {
             // Временно отобразим все упражнения без фильтрации
             //return _buildExercisesList(state.exercises);
 
-            final loadedState = state as ExerciseListLoaded;
+            final loadedState = state;
 
             // Фильтрация упражнений
             List<Exercise> filteredExercises;
             if (_searchQuery.isEmpty) {
-              filteredExercises = loadedState.filteredExercises;
+              filteredExercises = loadedState.exercises;
             } else {
-              final query = _searchQuery.toLowerCase();
-              filteredExercises = loadedState.exercises
-                  .where((exercise) =>
-                      exercise.title.toLowerCase().contains(query) ||
-                      exercise.generalDescription.toLowerCase().contains(query) ||
-                      exercise.tags.any((tag) => tag.toLowerCase().contains(query)))
-                  .toList();
+              filteredExercises = loadedState.filteredExercises;
             }
 
             // Отображение пустого списка

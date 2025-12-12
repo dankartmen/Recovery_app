@@ -13,6 +13,10 @@ part 'exercise_list_state.dart';
 /// {@endtemplate}
 class ExerciseListBloc extends Bloc<ExerciseListEvent, ExerciseListState> {
   final ExerciseService exerciseService;
+  List<Exercise> _cachedExercises = [];
+  String? _lastInjuryType;
+  int? _lastMinPainLevel;
+
 
   ExerciseListBloc({required this.exerciseService}) : super(const ExerciseListInitial()) {
     on<LoadExercises>(_onLoadExercises);
@@ -20,13 +24,35 @@ class ExerciseListBloc extends Bloc<ExerciseListEvent, ExerciseListState> {
   }
 
   Future<void> _onLoadExercises(LoadExercises event, Emitter<ExerciseListState> emit) async {
+    // Проверяем, можно ли использовать кэш
+    if (_cachedExercises.isNotEmpty && 
+        _lastInjuryType == event.injuryType && 
+        _lastMinPainLevel == event.minPainLevel) {
+      // Используем кэшированные данные
+      emit(ExerciseListLoaded(
+        exercises: _cachedExercises,
+        filteredExercises: _cachedExercises,
+      ));
+      return;
+    }
+
     emit(const ExerciseListLoading());
     try {
       final exercises = await exerciseService.getExercises(injuryType: event.injuryType);
+      
+      // Сохраняем в кэш
+      _cachedExercises = exercises;
+      _lastInjuryType = event.injuryType;
+      _lastMinPainLevel = event.minPainLevel;
+      
       final filtered = event.minPainLevel != null
           ? exercises.where((e) => e.maxPainLevel >= event.minPainLevel!).toList()
           : exercises;
-      emit(ExerciseListLoaded(exercises: filtered));
+      
+      emit(ExerciseListLoaded(
+        exercises: exercises,
+        filteredExercises: filtered,
+      ));
     } catch (e) {
       emit(ExerciseListError(message: 'Не удалось загрузить упражнения: $e'));
     }

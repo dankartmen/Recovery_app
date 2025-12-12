@@ -114,6 +114,21 @@ Future<void> _initializeApp() async {
   await SoundService.init(); // Инициализация звукового сервиса
 }
 
+Widget _buildHomeScreen(RecoveryData recoveryData, BuildContext context) {
+  return MultiProvider(
+    providers: [
+      // BLoC для HomeScreen и его дочерних экранов
+      BlocProvider<HomeBloc>.value(
+        value: HomeBloc(
+          trainingBloc: BlocProvider.of<TrainingBloc>(context),
+          authService: Provider.of<AuthService>(context, listen: false),
+        ),
+      ),
+    ],
+    child: HomeScreen(recoveryData: recoveryData),
+  );
+}
+
 // Корневой виджет приложения
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -175,7 +190,7 @@ class MyApp extends StatelessWidget {
           if (args == null) {
             return QuestionnaireScreen();
           }
-          return HomeScreen(recoveryData: args as RecoveryData);
+          return _buildHomeScreen(args as RecoveryData, context);
         },
         '/questionnaire':
             (context) => QuestionnaireScreen(
@@ -219,6 +234,7 @@ class MyApp extends StatelessWidget {
           return ExerciseDetailScreen(exercise: exercise);
         },
       },
+      
       // Обработка неизвестных маршрутов
       onUnknownRoute:
           (settings) => MaterialPageRoute(
@@ -241,4 +257,5 @@ class MyApp extends StatelessWidget {
       },
     );
   }
+  
 }
