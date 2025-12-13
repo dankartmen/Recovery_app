@@ -54,7 +54,7 @@ class HomeScreenState extends State<HomeScreen> {
           return Scaffold(body: Center(child: Text(state.message)));
         } else if (state is HomeLoaded) {
           // Проверяем, есть ли расписание
-          final loadedState = state as HomeLoaded;
+          final loadedState = state;
           final hasSchedule = loadedState.schedule.id != 0;
 
           // Обновляем HistoryScreen с расписанием или без него

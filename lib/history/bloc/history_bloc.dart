@@ -16,6 +16,9 @@ part 'history_state.dart';
 /// {@endtemplate}
 class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   final HistoryRepository repository;
+  List<ExerciseHistory> _cachedHistory = []; // Кэшированная история
+  DateTime? _lastLoadTime; // Время последней загрузки
+  static const Duration _cacheDuration = Duration(minutes: 5); // Время жизни кэша
 
   HistoryBloc({required this.repository}) : super(HistoryInitial()) {
     on<LoadHistory>(_onLoadHistory);
@@ -27,10 +30,30 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   }
 
   Future<void> _onLoadHistory(LoadHistory event, Emitter<HistoryState> emit) async {
+    // Проверяем, можно ли использовать кэш
+    final canUseCache = _cachedHistory.isNotEmpty && 
+                       _lastLoadTime != null && 
+                       DateTime.now().difference(_lastLoadTime!) < _cacheDuration;
+    
+    if (canUseCache) {
+      // Используем кэшированные данные
+      emit(HistoryLoaded(
+        history: _cachedHistory,
+        selectedInjuryType: 'Все',
+        selectedTimePeriod: 'За всё время',
+      ));
+      return;
+    }
+
     emit(HistoryLoading());
     try {
       debugPrint("Загружаю историю в history_bloc");
       final history = await repository.getAllHistory();
+      
+      // Сохраняем в кэш
+      _cachedHistory = history;
+      _lastLoadTime = DateTime.now();
+      
       emit(HistoryLoaded(
         history: history,
         selectedInjuryType: 'Все',
@@ -49,6 +72,11 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       try {
         debugPrint("Обновляю историю в history_bloc");
         final history = await repository.getAllHistory();
+        
+        // Обновляем кэш
+        _cachedHistory = history;
+        _lastLoadTime = DateTime.now();
+        
         emit(current.copyWith(history: history));
       } catch (e) {
         emit(HistoryError(message: 'Ошибка обновления истории: $e'));
@@ -59,7 +87,13 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   void _onAddHistoryItem(AddHistoryItem event, Emitter<HistoryState> emit) {
     if (state is HistoryLoaded) {
       final current = state as HistoryLoaded;
-      emit(current.copyWith(history: [...current.history, event.item]));
+      final updatedHistory = [...current.history, event.item];
+      
+      // Обновляем кэш
+      _cachedHistory = updatedHistory;
+      _lastLoadTime = DateTime.now();
+      
+      emit(current.copyWith(history: updatedHistory));
     }
   }
 

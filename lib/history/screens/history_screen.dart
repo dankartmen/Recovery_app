@@ -6,7 +6,6 @@ import '../../exercises/models/exercise_history.dart';
 import '../../data/models/models.dart';
 import '../../training/models/training.dart';
 import '../../training/models/training_schedule.dart';
-import 'package:intl/intl.dart';
 import '../../core/styles/style.dart';
 import '../../exercises/models/exercise.dart';
 import '../bloc/history_bloc.dart';
@@ -26,14 +25,19 @@ class HistoryScreen extends StatefulWidget {
   HistoryScreenState createState() => HistoryScreenState();
 }
 
-class HistoryScreenState extends State<HistoryScreen> {
-  String _selectedInjuryType = "Все";
-  String _selectedTimePeriod = "За всё время";
-  List<ExerciseHistory> _historyList = [];
-  List<Exercise> _exercises = []; // Для добавления тренировок
-
-  /// Выбранный день в календаре
+class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveClientMixin{
+  /// Выбранный тип травмы для фильтрации
+  String _selectedInjuryType = 'Все';
+  
+  /// Выбранный временной период для фильтрации
+  String _selectedTimePeriod = 'За всё время';
+  
+  /// Выбранный день для отображения деталей в календаре
   DateTime? _selectedDay;
+
+  @override
+  bool get wantKeepAlive => true; // Сохраняем состояние экрана
+
 
   TrainingSchedule? _schedule;
 
@@ -41,13 +45,35 @@ class HistoryScreenState extends State<HistoryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<HistoryBloc>().add(LoadHistory());
+      _loadHistoryIfNeeded();
     });
-    _schedule = widget.schedule;
+  }
+
+  /// Загрузка истории только при необходимости
+  void _loadHistoryIfNeeded() {
+    final bloc = context.read<HistoryBloc>();
+    final state = bloc.state;
+    
+    // Загружаем только если состояние начальное
+    if (state is HistoryInitial) {
+      _loadHistory();
+    }
+  }
+
+  /// Инициализация загрузки истории
+  void _loadHistory() {
+    context.read<HistoryBloc>().add(LoadHistory());
+  }
+  
+  /// Обновление истории
+  void _refreshHistory() {
+    context.read<HistoryBloc>().add(RefreshHistory());
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+    
     return BlocBuilder<HistoryBloc, HistoryState>(
       builder: (context, state) {
         if (state is HistoryLoading) {
@@ -143,6 +169,7 @@ class HistoryScreenState extends State<HistoryScreen> {
         context.read<HistoryBloc>().add(SelectDay(day: selectedDay));
       },
       locale: 'ru_RU',
+      startingDayOfWeek: StartingDayOfWeek.monday,
       calendarBuilders: CalendarBuilders(
         markerBuilder: (context, day, events) {
           final status = _getDayStatus(day, history);
