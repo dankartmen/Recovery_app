@@ -4,7 +4,7 @@ abstract class HistoryEvent extends Equatable {
   const HistoryEvent();
 
   @override
-  List<Object?> get props => [];
+  List<Object> get props => [];
 }
 
 /// {@template load_history}
@@ -26,7 +26,7 @@ class AddHistoryItem extends HistoryEvent {
   const AddHistoryItem({required this.item});
 
   @override
-  List<Object?> get props => [item];
+  List<Object> get props => [item];
 }
 
 /// {@template update_injury_type_filter}
@@ -38,7 +38,7 @@ class UpdateInjuryTypeFilter extends HistoryEvent {
   const UpdateInjuryTypeFilter({required this.filter});
 
   @override
-  List<Object?> get props => [filter];
+  List<Object> get props => [filter];
 }
 
 /// {@template update_time_period_filter}
@@ -50,17 +50,22 @@ class UpdateTimePeriodFilter extends HistoryEvent {
   const UpdateTimePeriodFilter({required this.filter});
 
   @override
-  List<Object?> get props => [filter];
+  List<Object> get props => [filter];
 }
 
 /// {@template select_day}
 /// Событие выбора дня в календаре.
 /// {@endtemplate}
 class SelectDay extends HistoryEvent {
-  final DateTime? day;
+  final DateTime day;
 
-  const SelectDay({this.day});
+  const SelectDay({required this.day});
 
   @override
-  List<Object?> get props => [day];
+  List<Object> get props => [day];
 }
+
+/// {@template clear_filters}
+/// Событие очищения фильтров.
+/// {@endtemplate}
+class ClearFilters extends HistoryEvent {}

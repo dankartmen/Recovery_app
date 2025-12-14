@@ -1,8 +1,8 @@
+import 'package:auth_test/data/repositories/exercise_history_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/styles/style.dart';
-import '../../data/repositories/history_repository.dart';
 import '../../features/sounds/sound_selection_dialog.dart';
 import '../bloc/exercise_bloc.dart';
 import '../models/exercise.dart';
@@ -23,7 +23,7 @@ class ExerciseDetailScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => ExerciseExecutionBloc(
         exercise: exercise,
-        historyRepository: context.read<HistoryRepository>(), // Предполагаем Provider в main
+        historyRepository: context.read<ExerciseHistoryRepository>(),
       ),
       child: _ExerciseDetailContent(exercise: exercise),
     );

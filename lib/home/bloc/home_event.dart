@@ -18,3 +18,18 @@ class InitializeHome extends HomeEvent {
   @override
   List<Object?> get props => [recoveryData];
 }
+
+/// Обновление расписания
+class UpdateSchedule extends HomeEvent {
+  final TrainingSchedule schedule;
+
+  const UpdateSchedule({required this.schedule});
+
+  @override
+  List<Object> get props => [schedule];
+}
+
+/// Обновление данных
+class RefreshData extends HomeEvent {
+  const RefreshData();
+}

@@ -4,10 +4,12 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter/material.dart';
 import '../../exercises/models/exercise_history.dart';
 import '../../data/models/models.dart';
+import '../../training/bloc/training_bloc.dart';
 import '../../training/models/training.dart';
 import '../../training/models/training_schedule.dart';
 import '../../core/styles/style.dart';
 import '../../exercises/models/exercise.dart';
+import '../../training/screen/day_schedule_bottom_sheet.dart';
 import '../bloc/history_bloc.dart';
 import 'pdf_preview_screen.dart';
 
@@ -21,31 +23,21 @@ class HistoryScreen extends StatefulWidget {
     required this.schedule,
     super.key,
   });
+  
   @override
   HistoryScreenState createState() => HistoryScreenState();
 }
 
-class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveClientMixin{
-  /// Выбранный тип травмы для фильтрации
-  String _selectedInjuryType = 'Все';
-  
-  /// Выбранный временной период для фильтрации
-  String _selectedTimePeriod = 'За всё время';
-  
-  /// Выбранный день для отображения деталей в календаре
-  DateTime? _selectedDay;
-
+class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveClientMixin {
   @override
-  bool get wantKeepAlive => true; // Сохраняем состояние экрана
-
-
-  TrainingSchedule? _schedule;
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadHistoryIfNeeded();
+      _loadTrainingSchedule();
     });
   }
 
@@ -54,9 +46,18 @@ class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCli
     final bloc = context.read<HistoryBloc>();
     final state = bloc.state;
     
-    // Загружаем только если состояние начальное
     if (state is HistoryInitial) {
       _loadHistory();
+    }
+  }
+
+  /// Загрузка расписания тренировок
+  void _loadTrainingSchedule() {
+    final bloc = context.read<TrainingBloc>();
+    final state = bloc.state;
+    
+    if (state is TrainingInitial) {
+      bloc.add(LoadCurrentSchedule());
     }
   }
 
@@ -68,89 +69,161 @@ class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCli
   /// Обновление истории
   void _refreshHistory() {
     context.read<HistoryBloc>().add(RefreshHistory());
+    context.read<TrainingBloc>().add(RefreshTrainingHistory());
+  }
+
+  /// Показ деталей дня (нижний лист с тренировками)
+  void _showDayDetails(DateTime day, List<Exercise> exercises) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: context.read<TrainingBloc>()),
+          BlocProvider.value(value: context.read<HistoryBloc>()),
+        ],
+        child: DayScheduleBottomSheet(
+          day: day,
+          filteredExercises: exercises,
+          isReadOnly: true, // В истории только просмотр
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     
-    return BlocBuilder<HistoryBloc, HistoryState>(
-      builder: (context, state) {
-        if (state is HistoryLoading) {
-          return _buildLoadingState();
-        } else if (state is HistoryError) {
-          return _buildErrorState(state.message);
-        } else if (state is HistoryLoaded) {
-          final filteredHistory = _applyFilters(state.history, state.selectedInjuryType, state.selectedTimePeriod, state.selectedDay);
-          if (filteredHistory.isEmpty) {
-            return _buildEmptyState();
-          }
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<HistoryBloc, HistoryState>(
+          listener: (context, state) {
+            if (state is HistoryError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
+            }
+          },
+        ),
+        BlocListener<TrainingBloc, TrainingState>(
+          listener: (context, state) {
+            if (state is TrainingError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
+            }
+          },
+        ),
+      ],
+      child: BlocBuilder<HistoryBloc, HistoryState>(
+        builder: (context, historyState) {
+          return BlocBuilder<TrainingBloc, TrainingState>(
+            builder: (context, trainingState) {
+              if (historyState is HistoryLoading || trainingState is TrainingLoading) {
+                return _buildLoadingState();
+              } else if (historyState is HistoryError) {
+                return _buildErrorState(historyState.message);
+              } else if (historyState is HistoryLoaded) {
+                final filteredHistory = _applyFilters(
+                  historyState.history,
+                  historyState.selectedInjuryType,
+                  historyState.selectedTimePeriod,
+                  historyState.selectedDay,
+                );
 
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text(
-                'История восстановления',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              backgroundColor: healthPrimaryColor,
-              iconTheme: const IconThemeData(color: Colors.white),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.picture_as_pdf),
-                  onPressed: () => _exportToPdf(context, filteredHistory),
-                  tooltip: 'Экспорт в PDF',
-                ),
-              ],
-            ),
-            body: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Фильтры
-                  _buildFilters(state.selectedInjuryType, state.selectedTimePeriod),
-                  // Календарь
-                  _buildCalendar(state.history, state.selectedDay),
-                  // Список истории
-                  _buildHistoryList(filteredHistory),
-                ],
-              ),
-            ),
+                if (filteredHistory.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return Scaffold(
+                  appBar: AppBar(
+                    title: const Text(
+                      'История восстановления',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    backgroundColor: healthPrimaryColor,
+                    iconTheme: const IconThemeData(color: Colors.white),
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.picture_as_pdf),
+                        onPressed: () => _exportToPdf(context, filteredHistory),
+                        tooltip: 'Экспорт в PDF',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: _refreshHistory,
+                        tooltip: 'Обновить',
+                      ),
+                    ],
+                  ),
+                  body: RefreshIndicator(
+                    onRefresh: () async {
+                      _refreshHistory();
+                      return Future.delayed(const Duration(seconds: 1));
+                    },
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Фильтры
+                          _buildFilters(historyState),
+                          // Календарь
+                          _buildCalendar(historyState, trainingState),
+                          // Список истории
+                          _buildHistoryList(filteredHistory),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           );
-        }
-        return const SizedBox.shrink();
-      },
+        },
+      ),
     );
   }
 
-  Widget _buildFilters(String selectedInjuryType, String selectedTimePeriod) {
+  Widget _buildFilters(HistoryLoaded state) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Expanded(
             child: DropdownButton<String>(
-              value: selectedInjuryType,
-              onChanged: (value) => context.read<HistoryBloc>().add(UpdateInjuryTypeFilter(filter: value ?? 'Все')),
+              isExpanded: true,
+              value: state.selectedInjuryType,
+              onChanged: (value) => context.read<HistoryBloc>().add(
+                UpdateInjuryTypeFilter(filter: value ?? 'Все')
+              ),
               items: const [
                 DropdownMenuItem(value: 'Все', child: Text('Все травмы')),
-                // Добавьте другие типы из injuryCategories, если нужно
+                DropdownMenuItem(value: 'Ортопедические', child: Text('Ортопедические')),
+                DropdownMenuItem(value: 'Нейрохирургические', child: Text('Нейрохирургические')),
+                DropdownMenuItem(value: 'Спортивные травмы', child: Text('Спортивные травмы')),
+                DropdownMenuItem(value: 'Послеоперационная реабилитация', child: Text('Послеоперационная реабилитация')),
+                DropdownMenuItem(value: 'Хронические заболевания', child: Text('Хронические заболевания')),
               ],
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: DropdownButton<String>(
-              value: selectedTimePeriod,
-              onChanged: (value) => context.read<HistoryBloc>().add(UpdateTimePeriodFilter(filter: value ?? 'За всё время')),
+              isExpanded: true,
+              value: state.selectedTimePeriod,
+              onChanged: (value) => context.read<HistoryBloc>().add(
+                UpdateTimePeriodFilter(filter: value ?? 'За всё время')
+              ),
               items: const [
                 DropdownMenuItem(value: 'За всё время', child: Text('За всё время')),
                 DropdownMenuItem(value: 'Неделя', child: Text('Неделя')),
                 DropdownMenuItem(value: 'Месяц', child: Text('Месяц')),
-                // Другие периоды
               ],
             ),
           ),
@@ -159,20 +232,24 @@ class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCli
     );
   }
 
-  Widget _buildCalendar(List<ExerciseHistory> history, DateTime? selectedDay) {
+  Widget _buildCalendar(HistoryLoaded historyState, TrainingState trainingState) {
+    final schedule = trainingState is TrainingLoaded ? trainingState.schedule : null;
+    
     return TableCalendar(
       firstDay: DateTime.utc(2020, 1, 1),
       lastDay: DateTime.utc(2030, 12, 31),
-      focusedDay: selectedDay ?? DateTime.now(),
-      selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+      focusedDay: historyState.selectedDay ?? DateTime.now(),
+      selectedDayPredicate: (day) => isSameDay(historyState.selectedDay, day),
       onDaySelected: (selectedDay, focusedDay) {
         context.read<HistoryBloc>().add(SelectDay(day: selectedDay));
+        // Для демонстрации упражнений - в реальном приложении нужно загружать упражнения
+        _showDayDetails(selectedDay, []);
       },
       locale: 'ru_RU',
       startingDayOfWeek: StartingDayOfWeek.monday,
       calendarBuilders: CalendarBuilders(
         markerBuilder: (context, day, events) {
-          final status = _getDayStatus(day, history);
+          final status = _getDayStatus(day, historyState.history, schedule);
           return status != null
               ? Container(
                   decoration: BoxDecoration(
@@ -186,6 +263,46 @@ class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCli
               : null;
         },
       ),
+      calendarStyle: CalendarStyle(
+        todayDecoration: BoxDecoration(
+          color: healthPrimaryColor.withValues(alpha: 0.2),
+          shape: BoxShape.circle
+        ),
+        selectedDecoration: BoxDecoration(
+          color: healthPrimaryColor,
+          shape: BoxShape.circle
+        ),
+        selectedTextStyle: const TextStyle(color: Colors.white),
+        weekendTextStyle: TextStyle(color: Colors.red[300]),
+      ),
+      headerStyle: HeaderStyle(
+        formatButtonVisible: false,
+        titleCentered: true,
+        titleTextStyle: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: healthTextColor,
+        ),
+        leftChevronIcon: Icon(
+          Icons.chevron_left,
+          color: healthPrimaryColor,
+        ),
+        rightChevronIcon: Icon(
+          Icons.chevron_right,
+          color: healthPrimaryColor,
+        ),
+      ),
+      daysOfWeekStyle: DaysOfWeekStyle(
+        weekdayStyle: TextStyle(
+          color: healthTextColor,
+          fontWeight: FontWeight.bold,
+        ),
+        weekendStyle: TextStyle(
+          color: Colors.red[300],
+          fontWeight: FontWeight.bold,
+        )
+      ),
+      
     );
   }
 
@@ -196,10 +313,27 @@ class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCli
       itemCount: historyList.length,
       itemBuilder: (context, index) {
         final item = historyList[index];
-        return ListTile(
-          title: Text(item.exerciseName),
-          subtitle: Text(item.formattedDate),
-          trailing: Text('Боль: ${item.painLevel}'),
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: _getPainColor(item.painLevel).withValues(alpha: 0.2),
+              child: Icon(
+                Icons.fitness_center,
+                color: _getPainColor(item.painLevel),
+              ),
+            ),
+            title: Text(item.exerciseName),
+            subtitle: Text(item.formattedDate),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('${item.sets} подходов'),
+                Text('Боль: ${item.painLevel}/5', 
+                  style: TextStyle(color: _getPainColor(item.painLevel))),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -217,7 +351,10 @@ class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCli
           Text(error, style: const TextStyle(color: Colors.red, fontSize: 16)),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => context.read<HistoryBloc>().add(LoadHistory()),
+            onPressed: () {
+              _loadHistory();
+              _loadTrainingSchedule();
+            },
             child: const Text('Повторить'),
           ),
         ],
@@ -256,14 +393,21 @@ class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCli
   }
 
   // Метод фильтрации истории упражнений
-  List<ExerciseHistory> _applyFilters(List<ExerciseHistory> history, String injuryType, String timePeriod, DateTime? selectedDay) {
+  List<ExerciseHistory> _applyFilters(
+    List<ExerciseHistory> history, 
+    String injuryType, 
+    String timePeriod, 
+    DateTime? selectedDay
+  ) {
     var filtered = history;
+    
     // Фильтрация по типу травмы
     if (injuryType != 'Все') {
-      filtered = filtered.where((h) => h.exerciseName.contains(injuryType)).toList(); // Пример; адаптируйте по данным
+      filtered = filtered.where((h) => h.exerciseName.contains(injuryType)).toList();
     }
+    
+    // Фильтр по периоду
     if (timePeriod != 'За всё время') {
-      // Фильтр по периоду (неделя, месяц и т.д.)
       final now = DateTime.now();
       DateTime cutoff;
       if (timePeriod == 'Неделя') {
@@ -271,30 +415,37 @@ class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCli
       } else if (timePeriod == 'Месяц') {
         cutoff = now.subtract(const Duration(days: 30));
       } else {
-        cutoff = DateTime(2000); // Очень ранняя дата
+        cutoff = DateTime(2000);
       }
       filtered = filtered.where((h) => h.dateTime.isAfter(cutoff)).toList();
     }
+    
+    // Фильтр по выбранному дню
     if (selectedDay != null) {
       filtered = filtered.where((h) => isSameDay(h.dateTime, selectedDay)).toList();
     }
+    
     return filtered;
   }
 
   void _exportToPdf(BuildContext context, List<ExerciseHistory> history) {
-    // Логика экспорта (оригинальная: навигация к PdfPreviewScreen)
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PdfPreviewScreen(recoveryData: widget.recoveryData,  historyList: history),
+        builder: (context) => PdfPreviewScreen(
+          recoveryData: widget.recoveryData, 
+          historyList: history
+        ),
       ),
     );
   }
 
-  // Определение статуса дня (0 - нет, 1 - частично/вне плана, 2 - все/полностью)
-  int _getDayStatus(DateTime day, List<ExerciseHistory> historyList) {
+  // Определение статуса дня
+  int? _getDayStatus(DateTime day, List<ExerciseHistory> historyList, TrainingSchedule? schedule) {
+    if (schedule == null) return null;
+    
     final normalizedDay = DateTime(day.year, day.month, day.day);
-    final trainings = _schedule?.trainings[normalizedDay] ?? <Training>[];
+    final trainings = schedule.trainings[normalizedDay] ?? <Training>[];
     final completedCount = trainings.where((t) => t.isCompleted).length;
     final historyCount = historyList.where((h) => isSameDay(h.dateTime, day)).length;
 
@@ -306,14 +457,29 @@ class HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCli
 
   Color _getStatusColor(int status) {
     switch (status) {
-      case 3:
-        return Colors.green; // Все выполнено
       case 2:
-        return Colors.yellow; // Частично
+        return Colors.green;
       case 1:
-        return Colors.blue; // Выполнено вне плана
+        return Colors.yellow;
       default:
-        return Colors.grey; // Не выполнено
+        return Colors.grey;
+    }
+  }
+
+  Color _getPainColor(int level) {
+    switch (level) {
+      case 1:
+        return Colors.green;
+      case 2:
+        return Colors.lightGreen;
+      case 3:
+        return Colors.orange;
+      case 4:
+        return Colors.deepOrange;
+      case 5:
+        return Colors.red;
+      default:
+        return healthSecondaryTextColor;
     }
   }
 }

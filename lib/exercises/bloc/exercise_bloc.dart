@@ -1,11 +1,11 @@
 import 'dart:async';
+import 'package:auth_test/data/repositories/exercise_history_repository.dart';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/exercise_history.dart';
 import '../../data/models/sound.dart';
-import '../../data/repositories/history_repository.dart';
 import '../../features/sounds/sound_service.dart';
 import '../models/exercise.dart';
 
@@ -18,7 +18,7 @@ part 'exercise_state.dart';
 /// {@endtemplate}
 class ExerciseExecutionBloc extends Bloc<ExerciseExecutionEvent, ExerciseState> {
   final Exercise exercise;
-  final HistoryRepository historyRepository;
+  final ExerciseHistoryRepository historyRepository;
   Timer? _timer;
   final TextEditingController notesController = TextEditingController();
   Sound? _selectedSound;

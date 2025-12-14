@@ -4,7 +4,7 @@ abstract class HistoryState extends Equatable {
   const HistoryState();
 
   @override
-  List<Object?> get props => [];
+  List<Object> get props => [];
 }
 
 /// {@template history_initial}
@@ -28,8 +28,8 @@ class HistoryLoaded extends HistoryState {
 
   const HistoryLoaded({
     required this.history,
-    this.selectedInjuryType = 'Все',
-    this.selectedTimePeriod = 'За всё время',
+    required this.selectedInjuryType,
+    required this.selectedTimePeriod,
     this.selectedDay,
   });
 
@@ -48,7 +48,12 @@ class HistoryLoaded extends HistoryState {
   }
 
   @override
-  List<Object?> get props => [history, selectedInjuryType, selectedTimePeriod, selectedDay];
+  List<Object> get props => [
+    history,
+    selectedInjuryType,
+    selectedTimePeriod,
+    selectedDay ?? DateTime.now(),
+  ];
 }
 
 /// {@template history_error}
@@ -60,5 +65,5 @@ class HistoryError extends HistoryState {
   const HistoryError({required this.message});
 
   @override
-  List<Object?> get props => [message];
+  List<Object> get props => [message];
 }

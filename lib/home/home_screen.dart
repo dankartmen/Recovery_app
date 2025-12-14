@@ -24,7 +24,6 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   late RecoveryData _currentRecoveryData;
-  final List<Widget> _screens = [];
 
   @override
   void initState() {
@@ -33,47 +32,83 @@ class HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeBloc>().add(InitializeHome(recoveryData: _currentRecoveryData));
     });
-    _initializeScreens();
   }
 
-  void _initializeScreens() {
-    _screens.addAll([
-      ProfileScreen(recoveryData: _currentRecoveryData),
-      ExercisesListScreen(recoveryData: _currentRecoveryData),
-      HistoryScreen(recoveryData: _currentRecoveryData, schedule: null), // Schedule из HomeBloc state
-    ]);
+ @override
+  void dispose() {
+    super.dispose();
+  }
+
+  /// Обновление расписания и данных
+  Future<void> _refreshData() async {
+    context.read<HomeBloc>().add(RefreshData());
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<HomeBloc, HomeState>(
+    return BlocConsumer<HomeBloc, HomeState>(
+      listener: (context, state) {
+        if (state is HomeError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+      },
       builder: (context, state) {
         if (state is HomeLoading) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        } else if (state is HomeError) {
-          return Scaffold(body: Center(child: Text(state.message)));
-        } else if (state is HomeLoaded) {
-          // Проверяем, есть ли расписание
-          final loadedState = state;
-          final hasSchedule = loadedState.schedule.id != 0;
-
-          // Обновляем HistoryScreen с расписанием или без него
-          _screens[2] = HistoryScreen(
-            recoveryData: _currentRecoveryData, 
-            schedule: hasSchedule ? loadedState.schedule : null,
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
           );
-          
+        } else if (state is HomeError) {
           return Scaffold(
-            body: _screens[_selectedIndex],
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    state.message,
+                    style: const TextStyle(color: Colors.red, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _refreshData,
+                    child: const Text('Повторить'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else if (state is HomeLoaded) {
+          // Получаем актуальные данные из состояния
+          final currentState = state;
+          final hasSchedule = currentState.schedule.id != 0;
+
+          // Определяем экраны для навигации
+          final List<Widget> screens = [
+            ProfileScreen(recoveryData: currentState.recoveryData),
+            ExercisesListScreen(recoveryData: currentState.recoveryData),
+            HistoryScreen(
+              recoveryData: currentState.recoveryData, 
+              schedule: hasSchedule ? currentState.schedule : null,
+            ),
+          ];
+
+          return Scaffold(
+            body: IndexedStack(
+              index: _selectedIndex,
+              children: screens,
+            ),
             bottomNavigationBar: BottomNavigationBar(
               currentIndex: _selectedIndex,
               selectedItemColor: Colors.blue,
               unselectedItemColor: Colors.grey,
               selectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.bold, // более жирный шрифт на выбранной метке
+                fontWeight: FontWeight.bold,
               ),
               unselectedLabelStyle: const TextStyle(
-                color: Colors.grey, // серый шрифт на не выбранной метке
+                color: Colors.grey,
               ),
               type: BottomNavigationBarType.fixed,
               onTap: (index) => setState(() => _selectedIndex = index),
@@ -97,7 +132,13 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           );
         }
-        return const SizedBox.shrink();
+        
+        // Начальное состояние
+        return const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
       },
     );
   }

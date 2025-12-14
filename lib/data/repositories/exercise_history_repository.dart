@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:table_calendar/table_calendar.dart';
@@ -7,20 +6,19 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../core/services/auth_service.dart';
 import '../../exercises/models/exercise_history.dart';
 
-class HistoryRepository {
+class ExerciseHistoryRepository {
   static const String _baseUrl = 'http://195.225.111.85:8000/history';
   final AuthService authService;
-  HistoryRepository(this.authService);
+  
+  ExerciseHistoryRepository(this.authService);
 
   Future<String?> _getAuthHeader() async {
     try {
-      // Проверяем, инициализирован ли currentUser
       if (authService.currentUser == null) {
         await authService.initialize();
         debugPrint('Пользователь не аутентифицирован после инициализации');
         return null;
       }
-
       return authService.getBasicAuthHeader();
     } catch (e) {
       debugPrint('Ошибка получения заголовка авторизации: $e');
@@ -64,7 +62,7 @@ class HistoryRepository {
       }
 
       debugPrint(
-        "(HistoryRepository)Отправка запроса для пользователя ID: $userId",
+        "(ExerciseHistoryRepository) Отправка запроса для пользователя ID: $userId",
       );
       final response = await http.get(
         Uri.parse('$_baseUrl/users/$userId/history'),

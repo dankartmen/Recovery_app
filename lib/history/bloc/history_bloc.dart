@@ -2,10 +2,8 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-
-
+import '../../data/repositories/exercise_history_repository.dart';
 import '../../exercises/models/exercise_history.dart';
-import '../../data/repositories/history_repository.dart'; // RecoveryData, TrainingSchedule, Training
 
 part 'history_event.dart';
 part 'history_state.dart';
@@ -15,10 +13,10 @@ part 'history_state.dart';
 /// Обеспечивает загрузку, обновление, фильтрацию и добавление записей истории.
 /// {@endtemplate}
 class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
-  final HistoryRepository repository;
-  List<ExerciseHistory> _cachedHistory = []; // Кэшированная история
-  DateTime? _lastLoadTime; // Время последней загрузки
-  static const Duration _cacheDuration = Duration(minutes: 5); // Время жизни кэша
+  final ExerciseHistoryRepository repository;
+  List<ExerciseHistory> _cachedHistory = [];
+  DateTime? _lastLoadTime;
+  static const Duration _cacheDuration = Duration(minutes: 5);
 
   HistoryBloc({required this.repository}) : super(HistoryInitial()) {
     on<LoadHistory>(_onLoadHistory);
@@ -27,20 +25,20 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     on<UpdateInjuryTypeFilter>(_onUpdateInjuryTypeFilter);
     on<UpdateTimePeriodFilter>(_onUpdateTimePeriodFilter);
     on<SelectDay>(_onSelectDay);
+    on<ClearFilters>(_onClearFilters);
   }
 
   Future<void> _onLoadHistory(LoadHistory event, Emitter<HistoryState> emit) async {
-    // Проверяем, можно ли использовать кэш
     final canUseCache = _cachedHistory.isNotEmpty && 
                        _lastLoadTime != null && 
                        DateTime.now().difference(_lastLoadTime!) < _cacheDuration;
     
     if (canUseCache) {
-      // Используем кэшированные данные
       emit(HistoryLoaded(
         history: _cachedHistory,
         selectedInjuryType: 'Все',
         selectedTimePeriod: 'За всё время',
+        selectedDay: null,
       ));
       return;
     }
@@ -50,7 +48,6 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       debugPrint("Загружаю историю в history_bloc");
       final history = await repository.getAllHistory();
       
-      // Сохраняем в кэш
       _cachedHistory = history;
       _lastLoadTime = DateTime.now();
       
@@ -58,6 +55,7 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
         history: history,
         selectedInjuryType: 'Все',
         selectedTimePeriod: 'За всё время',
+        selectedDay: null,
       ));
     } catch (e) {
       debugPrint("Ошибка загрузки истории: $e");
@@ -66,21 +64,27 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   }
 
   Future<void> _onRefreshHistory(RefreshHistory event, Emitter<HistoryState> emit) async {
-    if (state is HistoryLoaded) {
-      final current = state as HistoryLoaded;
-      emit(HistoryLoading());
-      try {
-        debugPrint("Обновляю историю в history_bloc");
-        final history = await repository.getAllHistory();
-        
-        // Обновляем кэш
-        _cachedHistory = history;
-        _lastLoadTime = DateTime.now();
-        
+    emit(HistoryLoading());
+    try {
+      debugPrint("Обновляю историю в history_bloc");
+      final history = await repository.getAllHistory();
+      
+      _cachedHistory = history;
+      _lastLoadTime = DateTime.now();
+      
+      if (state is HistoryLoaded) {
+        final current = state as HistoryLoaded;
         emit(current.copyWith(history: history));
-      } catch (e) {
-        emit(HistoryError(message: 'Ошибка обновления истории: $e'));
+      } else {
+        emit(HistoryLoaded(
+          history: history,
+          selectedInjuryType: 'Все',
+          selectedTimePeriod: 'За всё время',
+          selectedDay: null,
+        ));
       }
+    } catch (e) {
+      emit(HistoryError(message: 'Ошибка обновления истории: $e'));
     }
   }
 
@@ -89,7 +93,6 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       final current = state as HistoryLoaded;
       final updatedHistory = [...current.history, event.item];
       
-      // Обновляем кэш
       _cachedHistory = updatedHistory;
       _lastLoadTime = DateTime.now();
       
@@ -117,4 +120,18 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       emit(current.copyWith(selectedDay: event.day));
     }
   }
+
+  void _onClearFilters(ClearFilters event, Emitter<HistoryState> emit) {
+    if (state is HistoryLoaded) {
+      final current = state as HistoryLoaded;
+      emit(current.copyWith(
+        selectedInjuryType: 'Все',
+        selectedTimePeriod: 'За всё время',
+        selectedDay: null,
+      ));
+    }
+  }
+
+  // Геттер для получения истории
+  List<ExerciseHistory> get history => _cachedHistory;
 }

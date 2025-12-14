@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'auth/bloc/auth_bloc.dart';
 import 'auth/bloc/registration_bloc.dart';
-import 'data/repositories/history_repository.dart';
+import 'data/repositories/exercise_history_repository.dart';
 import 'auth/screens/login_screen.dart';
 import 'exercises/bloc/exercise_list_bloc.dart';
 import 'exercises/models/exercise.dart';
@@ -45,11 +45,11 @@ void main() async {
   final authService = AuthService();
   await authService.initialize(); // Асинхронная авторизация пользователя
 
-  final historyRepository = HistoryRepository(authService);
+  final exerciseHistoryRepository = ExerciseHistoryRepository(authService);
   final questionnaireRepository = QuestionnaireRepository();
-  final questionnaireService = QuestionnaireService(); // Создан экземпляр
-  final trainingService = TrainingService(authService); // Создан экземпляр
-  final exerciseService = ExerciseService(authService: authService); // Создан экземпляр
+  final questionnaireService = QuestionnaireService();
+  final trainingService = TrainingService(authService); 
+  final exerciseService = ExerciseService(authService: authService); 
 
   // Запуск приложения с MultiProvider для управления состоянием
   runApp(
@@ -58,13 +58,13 @@ void main() async {
         ChangeNotifierProvider<AuthService>.value(value: authService),
         
         // Репозитории
-        Provider<HistoryRepository>.value(value: historyRepository),
+        Provider<ExerciseHistoryRepository>.value(value: exerciseHistoryRepository),
         Provider<QuestionnaireRepository>.value(value: questionnaireRepository),
         
         // Сервисы
-        Provider<QuestionnaireService>.value(value: questionnaireService), // Добавлено
-        Provider<TrainingService>.value(value: trainingService), // Добавлено
-        Provider<ExerciseService>.value(value: exerciseService), // Добавлено
+        Provider<QuestionnaireService>.value(value: questionnaireService),
+        Provider<TrainingService>.value(value: trainingService), 
+        Provider<ExerciseService>.value(value: exerciseService),
         
         // BLoCs
         BlocProvider<AuthBloc>(
@@ -77,13 +77,14 @@ void main() async {
         ),
         BlocProvider<HistoryBloc>(
           create: (context) => HistoryBloc(
-            repository: Provider.of<HistoryRepository>(context, listen: false),
+            repository: Provider.of<ExerciseHistoryRepository>(context, listen: false),
           ),
         ),
         BlocProvider<TrainingBloc>(
           create: (context) => TrainingBloc(
-            historyRepository: Provider.of<HistoryRepository>(context, listen: false),
-            trainingService: Provider.of<TrainingService>(context, listen: false), // Исправлено
+            historyRepository: Provider.of<ExerciseHistoryRepository>(context, listen: false),
+            trainingService: Provider.of<TrainingService>(context, listen: false),
+            authService: Provider.of<AuthService>(context, listen: false),
           ),
         ),
         BlocProvider<ExerciseListBloc>(
@@ -117,7 +118,6 @@ Future<void> _initializeApp() async {
 Widget _buildHomeScreen(RecoveryData recoveryData, BuildContext context) {
   return MultiProvider(
     providers: [
-      // BLoC для HomeScreen и его дочерних экранов
       BlocProvider<HomeBloc>.value(
         value: HomeBloc(
           trainingBloc: BlocProvider.of<TrainingBloc>(context),
@@ -139,6 +139,7 @@ class MyApp extends StatelessWidget {
     final authService = Provider.of<AuthService>(context, listen: false);
     // Определение стартового экрана в зависимости от состояния авторизации
     Widget startScreen;
+    
     if (authService.isLoading) {
       // Показываем индикатор загрузки, пока идет авторизация
       startScreen = Scaffold(
