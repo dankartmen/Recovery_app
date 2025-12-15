@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
@@ -8,29 +7,44 @@ import 'register_screen.dart';
 import '../bloc/auth_bloc.dart';
 import 'forgot_password_screen.dart';
 
+/// {@template login_screen}
+/// Экран авторизации пользователя.
+/// {@endtemplate}
 class LoginScreen extends StatefulWidget {
+  /// {@macro login_screen}
   const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+/// {@template login_screen_state}
+/// Состояние экрана авторизации.
+/// {@endtemplate}
 class _LoginScreenState extends State<LoginScreen> {
+  /// Ключ для управления состоянием формы.
   final _formKey = GlobalKey<FormState>();
+
+  /// Контроллер для поля ввода имени пользователя.
   final _usernameController = TextEditingController();
+
+  /// Контроллер для поля ввода пароля.
   final _passwordController = TextEditingController();
+
+  /// Флаг видимости пароля в поле ввода.
+  /// Когда true - пароль скрыт, когда false - пароль отображается.
   bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(  // Для навигации/эффектов
+    return BlocListener<AuthBloc, AuthState>(  
       listener: (context, state) {
         if (state is AuthSuccess) {
           final authService = Provider.of<AuthService>(context, listen: false);
           authService.handlePostLoginNavigation(context);
         }
       },
-      child: BlocBuilder<AuthBloc, AuthState>(  // Для UI
+      child: BlocBuilder<AuthBloc, AuthState>(  
         builder: (context, state) {
           bool isLoading = state is AuthLoading;
           String? error = state is AuthError ? state.errorMessage : null;

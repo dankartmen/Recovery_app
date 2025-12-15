@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/styles/style.dart';
-import '../bloc/registration_bloc.dart'; // Замените на ваш путь
+import '../bloc/registration_bloc.dart'; 
 
 /// {@template register_screen}
 /// Экран регистрации нового пользователя.
-/// Предоставляет форму для создания учетной записи с валидацией данных.
+/// Предоставляет форму для создания учетной записи.
 /// {@endtemplate}
 class RegisterScreen extends StatefulWidget {
   /// {@macro register_screen}
@@ -15,10 +15,21 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
+/// {@template register_screen_state}
+/// Состояние экрана регистрации.
+/// {@endtemplate}
 class _RegisterScreenState extends State<RegisterScreen> {
+  /// Ключ для управления состоянием формы.
   final _formKey = GlobalKey<FormState>();
+
+  /// Контроллер для поля ввода имени пользователя.
   final _usernameController = TextEditingController();
+
+  /// Контроллер для поля ввода пароля.
   final _passwordController = TextEditingController();
+
+  /// Контроллер для поля подтверждения пароля.
+  /// Должен совпадать с паролем из [_passwordController].
   final _confirmPasswordController = TextEditingController();
 
   @override

@@ -2,18 +2,30 @@ import 'package:flutter/material.dart';
 import '../../core/styles/style.dart';
 import 'reset_password_screen.dart';
 
-/// Экран восстановления пароля
-/// Позволяет пользователю ввести имя пользователя для сброса пароля
+/// {@template forgot_password_screen}
+/// Экран восстановления пароля.
+/// Позволяет пользователю ввести имя пользователя для сброса пароля.
+/// {@endtemplate}
 class ForgotPasswordScreen extends StatefulWidget {
+  /// {@macro forgot_password_screen}
   const ForgotPasswordScreen({super.key});
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
+/// {@template forgot_password_screen_state}
+/// Состояние экрана восстановления пароля.
+/// Управляет логикой валидации формы и навигацией к экрану установки нового пароля.
+/// {@endtemplate}
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  /// Контроллер для поля ввода имени пользователя.
   final _usernameController = TextEditingController();
+
+  /// Ключ для управления состоянием формы.
   final _formKey = GlobalKey<FormState>();
+
+  /// Индикатор загрузки при отправке формы.
   bool _isLoading = false;
 
   @override
@@ -160,8 +172,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  /// Обработка отправки формы
-  /// Проверяет валидность формы и переходит на экран установки пароля
+  /// Метод для обработки отправки формы.
+  /// Проверяет валидность формы и переходит на экран сброса пароля.
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -170,7 +182,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final username = _usernameController.text;
     if (!mounted) return;
 
-    // Переходим сразу на экран установки нового пароля
     Navigator.push(
       context,
       MaterialPageRoute(

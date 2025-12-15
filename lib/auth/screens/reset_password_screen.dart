@@ -3,24 +3,47 @@ import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/styles/style.dart';
 
-/// Экран установки нового пароля
-/// Позволяет пользователю установить новый пароль после подтверждения имени пользователя
+/// {@template reset_password_screen}
+/// Экран установки нового пароля.
+/// Позволяет пользователю установить новый пароль после подтверждения имени пользователя.
+/// {@endtemplate}
 class ResetPasswordScreen extends StatefulWidget {
+  /// Имя пользователя, для которого выполняется сброс пароля.
   final String username;
 
+  /// {@macro reset_password_screen}
   const ResetPasswordScreen({super.key, required this.username});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
+/// {@template reset_password_screen_state}
+/// Состояние экрана установки нового пароля.
+/// {@endtemplate}
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+  /// Контроллер для поля ввода нового пароля.
   final _passwordController = TextEditingController();
+
+  /// Контроллер для поля подтверждения пароля.
+  /// Должен совпадать с паролем из [_passwordController].
   final _confirmController = TextEditingController();
+
+  /// Ключ для управления состоянием формы.
   final _formKey = GlobalKey<FormState>();
+
+  /// Индикатор загрузки при отправке запроса на сброс пароля.
   bool _isLoading = false;
+
+  /// Сообщение об ошибке при сбросе пароля.
   String? _errorMessage;
+
+  /// Флаг видимости пароля в поле ввода нового пароля.
+  /// Когда true - пароль скрыт, когда false - пароль отображается.
   bool _obscurePassword = true;
+
+  /// Флаг видимости пароля в поле подтверждения пароля.
+  /// Когда true - пароль скрыт, когда false - пароль отображается.
   bool _obscureConfirm = true;
 
   @override
@@ -269,8 +292,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 
-  /// Сброс пароля пользователя
-  /// Отправляет запрос на смену пароля и обрабатывает результат
+  /// Метод для сброса пароля пользователя.
+  /// Отправляет запрос на смену пароля и обрабатывает результат.
+  /// При ошибке валидации форма не отправляется.
+  /// При успешном сбросе пароля показывает уведомление и возвращает на экран входа.
+  /// При ошибке сервера отображает сообщение об ошибке.
   Future<void> _resetPassword() async {
     if (!_formKey.currentState!.validate()) return;
 
